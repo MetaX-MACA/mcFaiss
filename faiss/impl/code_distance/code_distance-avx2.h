@@ -91,7 +91,7 @@ float inline distance_single_code_avx2_pqdecoder8_m8(
     __m256 partialSum;
 
     // load 8 uint8 values
-    const __m128i mm1 = _mm_loadu_si64((const __m128i_u*)code);
+    const __m128i mm1 = _mm_loadl_epi64((const __m128i_u*)code);
     {
         // convert uint8 values (low part of __m128i) to int32
         // values
@@ -199,10 +199,10 @@ inline void distance_four_codes_avx2_pqdecoder8_m8(
 
     // load 8 uint8 values
     __m128i mm1[N];
-    mm1[0] = _mm_loadu_si64((const __m128i_u*)code0);
-    mm1[1] = _mm_loadu_si64((const __m128i_u*)code1);
-    mm1[2] = _mm_loadu_si64((const __m128i_u*)code2);
-    mm1[3] = _mm_loadu_si64((const __m128i_u*)code3);
+    mm1[0] = _mm_loadl_epi64((const __m128i_u*)code0);
+    mm1[1] = _mm_loadl_epi64((const __m128i_u*)code1);
+    mm1[2] = _mm_loadl_epi64((const __m128i_u*)code2);
+    mm1[3] = _mm_loadl_epi64((const __m128i_u*)code3);
 
     for (intptr_t j = 0; j < N; j++) {
         // convert uint8 values (low part of __m128i) to int32

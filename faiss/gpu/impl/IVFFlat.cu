@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/gpu/GpuIndex.h>
 #include <faiss/gpu/GpuResources.h>
 #include <faiss/gpu/impl/InterleavedCodes.h>
@@ -58,13 +63,13 @@ size_t IVFFlat::getGpuVectorsEncodingSize_(idx_t numVecs) const {
         idx_t bits = scalarQ_ ? scalarQ_->bits : 32 /* float */;
 
         // bytes to encode a block of 32 vectors (single dimension)
-        idx_t bytesPerDimBlock = bits * 32 / 8;
+        idx_t bytesPerDimBlock = bits * kWarpSize / 8;
 
         // bytes to fully encode 32 vectors
         idx_t bytesPerBlock = bytesPerDimBlock * dim_;
 
         // number of blocks of 32 vectors we have
-        idx_t numBlocks = utils::divUp(numVecs, 32);
+        idx_t numBlocks = utils::divUp(numVecs, kWarpSize);
 
         // total size to encode numVecs
         return bytesPerBlock * numBlocks;

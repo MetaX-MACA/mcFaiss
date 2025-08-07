@@ -1,0 +1,32 @@
+# for cu-bridge v1
+if(NOT DEFINED ENV{MACA_PATH} OR NOT DEFINED ENV{CUDA_PATH})
+  message(FATAL_ERROR "ENV MACA_PATH/CUDA_PATH not defined")
+endif()
+set(MACA_PATH "$ENV{MACA_PATH}")
+set(CUDA_PATH "$ENV{CUDA_PATH}")
+if(NOT DEFINED ENV{CUCC_PATH})
+  set(ENV{CUCC_PATH} "${CUDA_PATH}")
+  set(CUCC_PATH "${CUDA_PATH}")
+endif()
+set(WCUDA_PATH ${MACA_PATH}/tools/cu-bridge)
+
+list(APPEND CMAKE_MODULE_PATH "${WCUDA_PATH}/cmake_module/maca")
+
+# FIMXE: merge into cu-bridge? required for target_xxx/CMAKE_BUILD_TYPE take effects
+# copied from cmake/data/share/cmake-3.26/Modules/Compiler/NVIDIA-CUDA.cmake
+set(CMAKE_CUDA_COMPILE_OPTIONS_PIE -Xcompiler=-fPIE)
+set(CMAKE_CUDA_COMPILE_OPTIONS_PIC -Xcompiler=-fPIC)
+set(CMAKE_CUDA_COMPILE_OPTIONS_VISIBILITY -Xcompiler=-fvisibility=)
+# CMAKE_SHARED_LIBRARY_CUDA_FLAGS is sent to the host linker so we
+# don't need to forward it through nvcc.
+set(CMAKE_SHARED_LIBRARY_CUDA_FLAGS -fPIC)
+string(APPEND CMAKE_CUDA_FLAGS_INIT " ")
+string(APPEND CMAKE_CUDA_FLAGS_DEBUG_INIT " -g")
+string(APPEND CMAKE_CUDA_FLAGS_RELEASE_INIT " -O3 -DNDEBUG")
+string(APPEND CMAKE_CUDA_FLAGS_MINSIZEREL_INIT " -O1 -DNDEBUG")
+string(APPEND CMAKE_CUDA_FLAGS_RELWITHDEBINFO_INIT " -O2 -g -DNDEBUG")
+
+set(CMAKE_CUDA14_STANDARD_COMPILE_OPTION "-std=c++14")
+set(CMAKE_CUDA14_EXTENSION_COMPILE_OPTION "-std=c++14")
+set(CMAKE_CUDA17_STANDARD_COMPILE_OPTION "-std=c++17")
+set(CMAKE_CUDA17_EXTENSION_COMPILE_OPTION "-std=c++17")

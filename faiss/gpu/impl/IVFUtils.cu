@@ -67,7 +67,8 @@ size_t getIVFPQPerQueryTempMemory(
 size_t getIVFQueryTileSize(
         size_t numQueries,
         size_t tempMemoryAvailable,
-        size_t sizePerQuery) {
+        size_t sizePerQuery,
+        size_t nprobe) {
     // Our ideal minimum number of queries that we'd like to run concurrently
     constexpr size_t kMinQueryTileSize = 8;
 
@@ -78,51 +79,36 @@ size_t getIVFQueryTileSize(
     // First, see how many queries we can run within the limit of our available
     // temporary memory. If all queries can run within the temporary memory
     // limit, we'll just use that.
-    size_t withinTempMemoryNumQueries =
-            std::min(tempMemoryAvailable / sizePerQuery, numQueries);
+    size_t withinTempMemoryNumQueries = (tempMemoryAvailable / sizePerQuery);
 
-    // However, there is a maximum cap on the number of queries that we can run
-    // at once, even if memory were unlimited (due to max Y grid dimension)
-    withinTempMemoryNumQueries =
-            std::min(withinTempMemoryNumQueries, kMaxQueryTileSize);
+    if (nprobe >= 256) {
+        // However, there is a maximum cap on the number of queries that we can
+        // run at once, even if memory were unlimited (due to max Y grid
+        // dimension)
+        if (withinTempMemoryNumQueries < kMinQueryTileSize) {
+            withinTempMemoryNumQueries = kMinQueryTileSize;
+        } else if (withinTempMemoryNumQueries > kMaxQueryTileSize) {
+            withinTempMemoryNumQueries = kMaxQueryTileSize;
+        }
 
-    // However. withinTempMemoryNumQueries could be really small, or even zero
-    // (in the case where there is no temporary memory available, or the memory
-    // resources for a single query required are really large). If we are below
-    // the ideal minimum number of queries to run concurrently, then we will
-    // ignore the temporary memory limit and fall back to a general device
-    // allocation.
-    // Note that if we only had a single query, then this is ok to run as-is
-    if (withinTempMemoryNumQueries < numQueries &&
-        withinTempMemoryNumQueries < kMinQueryTileSize) {
-        // Either the amount of temporary memory available is too low, or the
-        // amount of memory needed to run a single query is really high. Ignore
-        // the temporary memory available, and always attempt to use this amount
-        // of memory for temporary results
-        //
-        // FIXME: could look at amount of memory available on the current
-        // device, but there is no guarantee that all that memory available
-        // could be done in a single allocation, so we just pick a suitably
-        // large allocation that can yield enough efficiency but something that
-        // the GPU can likely allocate.
-        constexpr size_t kMinMemoryAllocation = 512 * 1024 * 1024; // 512 MiB
-
-        size_t withinMemoryNumQueries =
-                std::min(kMinMemoryAllocation / sizePerQuery, numQueries);
-
-        // It is possible that the per-query size is incredibly huge, in which
-        // case even the 512 MiB allocation will not fit it. In this case, we
-        // have no option except to try running a single one.
-        return std::max(withinMemoryNumQueries, size_t(1));
-    } else {
-        // withinTempMemoryNumQueries cannot be > numQueries.
-        // Either:
-        // 1. == numQueries, >= kMinQueryTileSize (i.e., we can satisfy all
-        // queries in one go, or are limited by max query tile size)
-        // 2. < numQueries, >= kMinQueryTileSize (i.e., we can't satisfy all
-        // queries in one go, but we have a large enough batch to run which is
-        // ok
         return withinTempMemoryNumQueries;
+    } else {
+        withinTempMemoryNumQueries =
+                std::min(withinTempMemoryNumQueries, numQueries);
+        withinTempMemoryNumQueries =
+                std::min(withinTempMemoryNumQueries, kMaxQueryTileSize);
+        if (withinTempMemoryNumQueries < numQueries &&
+            withinTempMemoryNumQueries < kMinQueryTileSize) {
+            constexpr size_t kMinMemoryAllocation =
+                    512 * 1024 * 1024; // 512 MiB
+
+            size_t withinMemoryNumQueries =
+                    std::min(kMinMemoryAllocation / sizePerQuery, numQueries);
+
+            return std::max(withinMemoryNumQueries, size_t(1));
+        } else {
+            return withinTempMemoryNumQueries;
+        }
     }
 }
 

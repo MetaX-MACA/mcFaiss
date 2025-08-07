@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/gpu/GpuResources.h>
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/gpu/utils/StaticUtils.h>
@@ -18,6 +23,7 @@
 #include <faiss/gpu/utils/LoadStoreOperators.cuh>
 #include <faiss/gpu/utils/NoTypeTensor.cuh>
 #include <faiss/gpu/utils/WarpPackedBits.cuh>
+#include "faiss/gpu/utils/DeviceDefs.cuh"
 
 namespace faiss {
 namespace gpu {
@@ -62,10 +68,10 @@ __global__ void pqScanInterleaved(
     auto numVecs = listLengths[listId];
 
     // How many vector blocks of 32 are in this list?
-    idx_t numBlocks = utils::divUp(numVecs, (idx_t)32);
+    idx_t numBlocks = utils::divUp(numVecs, (idx_t)kWarpSize);
 
     // Number of EncodeT words per each dimension of block of 32 vecs
-    constexpr int bytesPerVectorBlockDim = EncodeBits * 32 / 8;
+    constexpr int bytesPerVectorBlockDim = EncodeBits * kWarpSize / 8;
     constexpr int wordsPerVectorBlockDim =
             bytesPerVectorBlockDim / sizeof(EncodeT);
     int wordsPerVectorBlock = wordsPerVectorBlockDim * numSubQuantizers;
@@ -583,7 +589,8 @@ void runPQScanMultiPassNoPrecomputed(
     idx_t queryTileSize = getIVFQueryTileSize(
             queries.getSize(0),
             res->getTempMemoryAvailableCurrentDevice(),
-            sizePerQuery);
+            sizePerQuery,
+            nprobe);
 
     // Temporary memory buffers
     // Make sure there is space prior to the start which will be 0, and

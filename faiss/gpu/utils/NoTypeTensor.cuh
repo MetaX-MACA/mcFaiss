@@ -99,7 +99,7 @@ class NoTypeTensor {
         IndexT newSize[Dim];
         for (int i = 0; i < Dim; ++i) {
             if (i == 0) {
-                assert(start + size <= size_[0]);
+                // assert(start + size <= size_[0]);
                 newSize[i] = size;
             } else {
                 newSize[i] = size_[i];

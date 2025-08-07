@@ -47,7 +47,13 @@ struct GpuIndexConfig {
 
 /// A centralized function that determines whether RAFT should
 /// be used based on various conditions (such as unsupported architecture)
+#if defined USE_NVIDIA_RAFT
 bool should_use_raft(GpuIndexConfig config_);
+#else
+static inline bool should_use_raft(GpuIndexConfig config_) {
+    return config_.use_raft;
+}
+#endif
 
 class GpuIndex : public faiss::Index {
    public:

@@ -115,9 +115,30 @@ if(FAISS_ENABLE_GPU)
   if(FAISS_ENABLE_RAFT)
     find_package(raft COMPONENTS compiled distributed)
   endif()
-  target_link_libraries(swigfaiss PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:nvidia::cutlass::cutlass>)
-  target_link_libraries(swigfaiss_avx2 PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:nvidia::cutlass::cutlass>)
-  target_link_libraries(swigfaiss_avx512 PRIVATE CUDA::cudart $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:nvidia::cutlass::cutlass>)
+  target_link_libraries(swigfaiss PRIVATE CUDA::cudart CUDA::cublas $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:nvidia::cutlass::cutlass>)
+  target_link_libraries(swigfaiss_avx2 PRIVATE CUDA::cudart CUDA::cublas $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:nvidia::cutlass::cutlass>)
+  target_link_libraries(swigfaiss_avx512 PRIVATE CUDA::cudart CUDA::cublas $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:nvidia::cutlass::cutlass>)
+
+  include(../../cmake/xgpu.cmake)
+  target_compile_options(swigfaiss PRIVATE ${EXTRA_CXX_COMPILE_OPTIONS_FOR_MACA})
+  target_compile_options(swigfaiss_avx2 PRIVATE ${EXTRA_CXX_COMPILE_OPTIONS_FOR_MACA})
+  # workaround, force include path for .cxx not add includes from cu-bridge
+  target_compile_options(swigfaiss PRIVATE
+    -I${MACA_PATH}/tools/cu-bridge/include
+    -I${MACA_PATH}/include
+    -I${MACA_PATH}/include/mcr
+    -I${MACA_PATH}/include/mcc
+    -I${MACA_PATH}/include/mcblas
+    -I${MACA_PATH}/include/common
+  )
+  target_compile_options(swigfaiss_avx2 PRIVATE
+    -I${MACA_PATH}/tools/cu-bridge/include
+    -I${MACA_PATH}/include
+    -I${MACA_PATH}/include/mcr
+    -I${MACA_PATH}/include/mcc
+    -I${MACA_PATH}/include/mcblas
+    -I${MACA_PATH}/include/common
+  )
 endif()
 
 find_package(OpenMP REQUIRED)

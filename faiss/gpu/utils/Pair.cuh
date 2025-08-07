@@ -17,24 +17,25 @@ namespace gpu {
 /// A simple pair type for CUDA device usage
 template <typename K, typename V>
 struct Pair {
-    constexpr __device__ inline Pair() {}
+    constexpr __device__ __forceinline__ Pair() {}
 
-    constexpr __device__ inline Pair(K key, V value) : k(key), v(value) {}
+    constexpr __device__ __forceinline__ Pair(K key, V value)
+            : k(key), v(value) {}
 
-    __device__ inline bool operator==(const Pair<K, V>& rhs) const {
+    __device__ __forceinline__ bool operator==(const Pair<K, V>& rhs) const {
         return Math<K>::eq(k, rhs.k) && Math<V>::eq(v, rhs.v);
     }
 
-    __device__ inline bool operator!=(const Pair<K, V>& rhs) const {
+    __device__ __forceinline__ bool operator!=(const Pair<K, V>& rhs) const {
         return !operator==(rhs);
     }
 
-    __device__ inline bool operator<(const Pair<K, V>& rhs) const {
+    __device__ __forceinline__ bool operator<(const Pair<K, V>& rhs) const {
         return Math<K>::lt(k, rhs.k) ||
                 (Math<K>::eq(k, rhs.k) && Math<V>::lt(v, rhs.v));
     }
 
-    __device__ inline bool operator>(const Pair<K, V>& rhs) const {
+    __device__ __forceinline__ bool operator>(const Pair<K, V>& rhs) const {
         return Math<K>::gt(k, rhs.k) ||
                 (Math<K>::eq(k, rhs.k) && Math<V>::gt(v, rhs.v));
     }
@@ -44,7 +45,7 @@ struct Pair {
 };
 
 template <typename T, typename U>
-inline __device__ Pair<T, U> shfl_up(
+__forceinline__ __device__ Pair<T, U> shfl_up(
         const Pair<T, U>& pair,
         unsigned int delta,
         int width = kWarpSize) {
@@ -53,7 +54,7 @@ inline __device__ Pair<T, U> shfl_up(
 }
 
 template <typename T, typename U>
-inline __device__ Pair<T, U> shfl_xor(
+__forceinline__ __device__ Pair<T, U> shfl_xor(
         const Pair<T, U>& pair,
         int laneMask,
         int width = kWarpSize) {

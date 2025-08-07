@@ -20,10 +20,20 @@
 
 cmake_minimum_required(VERSION 3.23.1 FATAL_ERROR)
 
-set(FAISS_LANGUAGES CXX)
+message(STATUS "faiss: processor=${CMAKE_SYSTEM_PROCESSOR}")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+  include(CheckCSourceCompiles)
+  check_c_source_compiles("#include <arm_neon.h>
+int main() {
+  float a[] = {1.0, 1.0};
+  vld1q_f32_x2(a);
+  return 0;
+}" HAS_VLD1)
 
-if(FAISS_ENABLE_GPU)
-  list(APPEND FAISS_LANGUAGES CUDA)
+  message(STATUS "faiss: ARM VLD1=${HAS_VLD1}")
+  if(NOT HAS_VLD1)
+    list(APPEND FAISS_EXTRA_DEFINITIONS FAISS_MISSING_ARM_VLD1=1)
+  endif()
 endif()
 
 if(FAISS_ENABLE_RAFT)
@@ -43,12 +53,17 @@ project(faiss
   VERSION 1.8.0
   DESCRIPTION "A library for efficient similarity search and clustering of dense vectors."
   HOMEPAGE_URL "https://github.com/facebookresearch/faiss"
-  LANGUAGES ${FAISS_LANGUAGES})
+  LANGUAGES CXX)
 include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 17)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+if (FAISS_WITH_MACA)
+  list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/xgpu")
+  list(APPEND CMAKE_MODULE_PATH "${MACA_PATH}/tools/cu-bridge/cmake_module/maca")
+  include(cmake/xgpu/ConfigureCUCC.cmake)
+endif (FAISS_WITH_MACA)
 
 # Valid values are "generic", "avx2", "avx512".
 option(FAISS_OPT_LEVEL "" "generic")
@@ -60,11 +75,18 @@ option(FAISS_ENABLE_C_API "Build C API." OFF)
 if(FAISS_ENABLE_GPU)
   set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
   enable_language(CUDA)
+  if (FAISS_WITH_MACA)
+    string(REGEX REPLACE "CMAKE_CXX_COMPILER" "CMAKE_LINKER" CMAKE_CXX_CREATE_SHARED_LIBRARY "${CMAKE_CXX_CREATE_SHARED_LIBRARY}")
+    string(REGEX REPLACE "CMAKE_CXX_COMPILER" "CMAKE_LINKER" CMAKE_CXX_CREATE_SHARED_MODULE "${CMAKE_CXX_CREATE_SHARED_MODULE}")
+    # revert changes from cu-bridge/FindCUDA.cmake
+    set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
+    add_link_options(-fopenmp)
+  endif (FAISS_WITH_MACA)
 endif()
 
 if(FAISS_ENABLE_RAFT AND NOT TARGET raft::raft)
    find_package(raft COMPONENTS compiled distributed)
- endif()
+endif()
 
 add_subdirectory(faiss)
 

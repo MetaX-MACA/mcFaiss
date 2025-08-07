@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/gpu/utils/StaticUtils.h>
 #include <faiss/impl/FaissAssert.h>
@@ -400,10 +405,10 @@ __global__ void ivfInterleavedAppend(
     // 32, but we ensure that it only operates on the group of 32 vectors. In
     // order to do this we need to actually start updating vectors at the next
     // lower multiple of 32 from listVecStart.
-    auto alignedListVecStart = utils::roundDown(listVecStart, 32);
+    auto alignedListVecStart = utils::roundDown(listVecStart, kWarpSize);
 
     // Each block of 32 vectors fully encodes into this many bytes
-    constexpr int bytesPerVectorBlockDim = EncodeBits * 32 / 8;
+    constexpr int bytesPerVectorBlockDim = EncodeBits * kWarpSize / 8;
     constexpr int wordsPerVectorBlockDim =
             bytesPerVectorBlockDim / sizeof(EncodeT);
     auto wordsPerVectorBlock = wordsPerVectorBlockDim * encodedVecs.getSize(1);
@@ -411,10 +416,10 @@ __global__ void ivfInterleavedAppend(
     EncodeT* listStart = ((EncodeT*)listData[listId]);
 
     // Each warp within the block handles a different chunk of 32
-    auto warpVec = alignedListVecStart + warpId * 32;
+    auto warpVec = alignedListVecStart + warpId * kWarpSize;
 
     // The warp data starts here
-    EncodeT* warpData = listStart + (warpVec / 32) * wordsPerVectorBlock;
+    EncodeT* warpData = listStart + (warpVec / kWarpSize) * wordsPerVectorBlock;
 
     // Each warp encodes a single block
     for (; warpVec < listVecStart + numVecsAdding;

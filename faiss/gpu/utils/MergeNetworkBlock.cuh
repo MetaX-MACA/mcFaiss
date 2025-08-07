@@ -302,7 +302,7 @@ template <
         bool Dir,
         typename Comp,
         bool FullMerge = true>
-inline __device__ void blockMerge(K* listK, V* listV) {
+__forceinline__ __device__ void blockMerge(K* listK, V* listV) {
     constexpr bool kSmallerThanBlock = (L <= NumThreads);
 
     BlockMerge<

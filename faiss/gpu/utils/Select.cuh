@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/gpu/utils/Comparators.cuh>
@@ -39,7 +44,7 @@ template <
         bool Dir,
         typename Comp>
 struct FinalBlockMerge<1, NumThreads, K, V, NumWarpQ, Dir, Comp> {
-    static inline __device__ void merge(K* sharedK, V* sharedV) {
+    static __forceinline__ __device__ void merge(K* sharedK, V* sharedV) {
         // no merge required; single warp
     }
 };
@@ -52,7 +57,7 @@ template <
         bool Dir,
         typename Comp>
 struct FinalBlockMerge<2, NumThreads, K, V, NumWarpQ, Dir, Comp> {
-    static inline __device__ void merge(K* sharedK, V* sharedV) {
+    static __forceinline__ __device__ void merge(K* sharedK, V* sharedV) {
         // Final merge doesn't need to fully merge the second list
         blockMerge<
                 NumThreads,
@@ -74,7 +79,7 @@ template <
         bool Dir,
         typename Comp>
 struct FinalBlockMerge<4, NumThreads, K, V, NumWarpQ, Dir, Comp> {
-    static inline __device__ void merge(K* sharedK, V* sharedV) {
+    static __forceinline__ __device__ void merge(K* sharedK, V* sharedV) {
         blockMerge<
                 NumThreads,
                 K,
@@ -104,7 +109,7 @@ template <
         bool Dir,
         typename Comp>
 struct FinalBlockMerge<8, NumThreads, K, V, NumWarpQ, Dir, Comp> {
-    static inline __device__ void merge(K* sharedK, V* sharedV) {
+    static __forceinline__ __device__ void merge(K* sharedK, V* sharedV) {
         blockMerge<
                 NumThreads,
                 K,
@@ -148,12 +153,8 @@ struct BlockSelect {
     static constexpr int kNumWarps = ThreadsPerBlock / kWarpSize;
     static constexpr int kTotalWarpSortSize = NumWarpQ;
 
-    __device__ inline BlockSelect(
-            K initKVal,
-            V initVVal,
-            K* smemK,
-            V* smemV,
-            int k)
+    __device__ __forceinline__
+    BlockSelect(K initKVal, V initVVal, K* smemK, V* smemV, int k)
             : initK(initKVal),
               initV(initVVal),
               numVals(0),
@@ -189,7 +190,7 @@ struct BlockSelect {
         warpFence();
     }
 
-    __device__ inline void addThreadQ(K k, V v) {
+    __device__ __forceinline__ void addThreadQ(K k, V v) {
         if (Dir ? Comp::gt(k, warpKTop) : Comp::lt(k, warpKTop)) {
             // Rotate right
 #pragma unroll
@@ -204,11 +205,15 @@ struct BlockSelect {
         }
     }
 
-    __device__ inline void checkThreadQ() {
+    __device__ __forceinline__ void checkThreadQ() {
         bool needSort = (numVals == NumThreadQ);
 
 #if CUDA_VERSION >= 9000
+#ifndef FAISS_WITH_MACA
         needSort = __any_sync(0xffffffff, needSort);
+#else
+        needSort = __any_sync(0xffffffffffffffff, needSort);
+#endif
 #else
         needSort = __any(needSort);
 #endif
@@ -240,7 +245,7 @@ struct BlockSelect {
     /// This function handles sorting and merging together the
     /// per-thread queues with the warp-wide queue, creating a sorted
     /// list across both
-    __device__ inline void mergeWarpQ() {
+    __device__ __forceinline__ void mergeWarpQ() {
         int laneId = getLaneId();
 
         // Sort all of the per-thread queues
@@ -282,12 +287,12 @@ struct BlockSelect {
 
     /// WARNING: all threads in a warp must participate in this.
     /// Otherwise, you must call the constituent parts separately.
-    __device__ inline void add(K k, V v) {
+    __device__ __forceinline__ void add(K k, V v) {
         addThreadQ(k, v);
         checkThreadQ();
     }
 
-    __device__ inline void reduce() {
+    __device__ __forceinline__ void reduce() {
         // Have all warps dump and merge their queues; this will produce
         // the final per-warp results
         mergeWarpQ();
@@ -345,25 +350,26 @@ template <
 struct BlockSelect<K, V, Dir, Comp, 1, NumThreadQ, ThreadsPerBlock> {
     static constexpr int kNumWarps = ThreadsPerBlock / kWarpSize;
 
-    __device__ inline BlockSelect(K initK, V initV, K* smemK, V* smemV, int k)
+    __device__ __forceinline__
+    BlockSelect(K initK, V initV, K* smemK, V* smemV, int k)
             : threadK(initK), threadV(initV), sharedK(smemK), sharedV(smemV) {}
 
-    __device__ inline void addThreadQ(K k, V v) {
+    __device__ __forceinline__ void addThreadQ(K k, V v) {
         bool swap = Dir ? Comp::gt(k, threadK) : Comp::lt(k, threadK);
         threadK = swap ? k : threadK;
         threadV = swap ? v : threadV;
     }
 
-    __device__ inline void checkThreadQ() {
+    __device__ __forceinline__ void checkThreadQ() {
         // We don't need to do anything here, since the warp doesn't
         // cooperate until the end
     }
 
-    __device__ inline void add(K k, V v) {
+    __device__ __forceinline__ void add(K k, V v) {
         addThreadQ(k, v);
     }
 
-    __device__ inline void reduce() {
+    __device__ __forceinline__ void reduce() {
         // Reduce within the warp
         Pair<K, V> pair(threadK, threadV);
 
@@ -439,7 +445,7 @@ template <
 struct WarpSelect {
     static constexpr int kNumWarpQRegisters = NumWarpQ / kWarpSize;
 
-    __device__ inline WarpSelect(K initKVal, V initVVal, int k)
+    __device__ __forceinline__ WarpSelect(K initKVal, V initVVal, int k)
             : initK(initKVal),
               initV(initVVal),
               numVals(0),
@@ -466,7 +472,7 @@ struct WarpSelect {
         }
     }
 
-    __device__ inline void addThreadQ(K k, V v) {
+    __device__ __forceinline__ void addThreadQ(K k, V v) {
         if (Dir ? Comp::gt(k, warpKTop) : Comp::lt(k, warpKTop)) {
             // Rotate right
 #pragma unroll
@@ -481,11 +487,15 @@ struct WarpSelect {
         }
     }
 
-    __device__ inline void checkThreadQ() {
+    __device__ __forceinline__ void checkThreadQ() {
         bool needSort = (numVals == NumThreadQ);
 
 #if CUDA_VERSION >= 9000
+#ifndef FAISS_WITH_MACA
         needSort = __any_sync(0xffffffff, needSort);
+#else
+        needSort = __any_sync(0xffffffffffffffff, needSort);
+#endif
 #else
         needSort = __any(needSort);
 #endif
@@ -514,7 +524,7 @@ struct WarpSelect {
     /// This function handles sorting and merging together the
     /// per-thread queues with the warp-wide queue, creating a sorted
     /// list across both
-    __device__ inline void mergeWarpQ() {
+    __device__ __forceinline__ void mergeWarpQ() {
         // Sort all of the per-thread queues
         warpSortAnyRegisters<K, V, NumThreadQ, !Dir, Comp>(threadK, threadV);
 
@@ -533,19 +543,19 @@ struct WarpSelect {
 
     /// WARNING: all threads in a warp must participate in this.
     /// Otherwise, you must call the constituent parts separately.
-    __device__ inline void add(K k, V v) {
+    __device__ __forceinline__ void add(K k, V v) {
         addThreadQ(k, v);
         checkThreadQ();
     }
 
-    __device__ inline void reduce() {
+    __device__ __forceinline__ void reduce() {
         // Have all warps dump and merge their queues; this will produce
         // the final per-warp results
         mergeWarpQ();
     }
 
     /// Dump final k selected values for this warp out
-    __device__ inline void writeOut(K* outK, V* outV, int k) {
+    __device__ __forceinline__ void writeOut(K* outK, V* outV, int k) {
         int laneId = getLaneId();
 
 #pragma unroll
@@ -596,25 +606,25 @@ template <
 struct WarpSelect<K, V, Dir, Comp, 1, NumThreadQ, ThreadsPerBlock> {
     static constexpr int kNumWarps = ThreadsPerBlock / kWarpSize;
 
-    __device__ inline WarpSelect(K initK, V initV, int k)
+    __device__ __forceinline__ WarpSelect(K initK, V initV, int k)
             : threadK(initK), threadV(initV) {}
 
-    __device__ inline void addThreadQ(K k, V v) {
+    __device__ __forceinline__ void addThreadQ(K k, V v) {
         bool swap = Dir ? Comp::gt(k, threadK) : Comp::lt(k, threadK);
         threadK = swap ? k : threadK;
         threadV = swap ? v : threadV;
     }
 
-    __device__ inline void checkThreadQ() {
+    __device__ __forceinline__ void checkThreadQ() {
         // We don't need to do anything here, since the warp doesn't
         // cooperate until the end
     }
 
-    __device__ inline void add(K k, V v) {
+    __device__ __forceinline__ void add(K k, V v) {
         addThreadQ(k, v);
     }
 
-    __device__ inline void reduce() {
+    __device__ __forceinline__ void reduce() {
         // Reduce within the warp
         Pair<K, V> pair(threadK, threadV);
 
@@ -631,7 +641,7 @@ struct WarpSelect<K, V, Dir, Comp, 1, NumThreadQ, ThreadsPerBlock> {
     }
 
     /// Dump final k selected values for this warp out
-    __device__ inline void writeOut(K* outK, V* outV, int k) {
+    __device__ __forceinline__ void writeOut(K* outK, V* outV, int k) {
         if (getLaneId() == 0) {
             *outK = threadK;
             *outV = threadV;

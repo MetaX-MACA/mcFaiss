@@ -42,24 +42,43 @@ void IVFINT_RUN<
 
     const dim3 grid(nprobe, std::min(nq, (idx_t)getMaxGridCurrentDevice().y));
 
-    ivfInterleavedScan<
-            SUB_CODEC_TYPE,
-            SUB_METRIC_TYPE,
-            SUB_THREADS,
-            SUB_NUM_WARP_Q,
-            SUB_NUM_THREAD_Q>
-            <<<grid, SUB_THREADS, codec.getSmemSize(dim), stream>>>(
-                    queries,
-                    residualBase,
-                    listIds,
-                    listData.data(),
-                    listLengths.data(),
-                    codec,
-                    metric,
-                    k,
-                    distanceTemp,
-                    indicesTemp,
-                    useResidual);
+    if (useResidual) {
+        ivfInterleavedScan<
+                SUB_CODEC_TYPE,
+                SUB_METRIC_TYPE,
+                SUB_THREADS,
+                SUB_NUM_WARP_Q,
+                SUB_NUM_THREAD_Q,
+                true><<<grid, SUB_THREADS, codec.getSmemSize(dim), stream>>>(
+                queries,
+                residualBase,
+                listIds,
+                listData.data(),
+                listLengths.data(),
+                codec,
+                metric,
+                k,
+                distanceTemp,
+                indicesTemp);
+    } else {
+        ivfInterleavedScan<
+                SUB_CODEC_TYPE,
+                SUB_METRIC_TYPE,
+                SUB_THREADS,
+                SUB_NUM_WARP_Q,
+                SUB_NUM_THREAD_Q,
+                false><<<grid, SUB_THREADS, codec.getSmemSize(dim), stream>>>(
+                queries,
+                residualBase,
+                listIds,
+                listData.data(),
+                listLengths.data(),
+                codec,
+                metric,
+                k,
+                distanceTemp,
+                indicesTemp);
+    }
 
     runIVFInterleavedScan2(
             distanceTemp,

@@ -58,9 +58,10 @@ if(FAISS_OPT_LEVEL STREQUAL "avx512")
   target_link_libraries(faiss_test PRIVATE faiss_avx512)
 endif()
 
+set(GTEST_URL "https://github.com/google/googletest/archive/release-1.12.1.tar.gz" CACHE STRING "Google Test Url")
+
 include(FetchContent)
-FetchContent_Declare(googletest
-  URL "https://github.com/google/googletest/archive/release-1.12.1.tar.gz")
+FetchContent_Declare(googletest URL "${GTEST_URL}")
 set(BUILD_GMOCK CACHE BOOL OFF)
 set(INSTALL_GTEST CACHE BOOL OFF)
 FetchContent_MakeAvailable(googletest)

@@ -58,9 +58,10 @@ code for evaluation and parameter tuning. Faiss is written in C++ with
 complete wrappers for Python/numpy. Some of the most useful algorithms
 are implemented on the GPU. It is developed by Facebook AI Research.
 """
+machine = os.getenv('MACHINE', 'x86_64')
 setup(
     name='faiss',
-    version='1.8.0',
+    version=os.environ.get('FAISS_PKG_VERSION', '2.8.0.0'),
     description='A library for efficient similarity search and clustering of dense vectors',
     long_description=long_description,
     url='https://github.com/facebookresearch/faiss',
@@ -69,10 +70,13 @@ setup(
     license='MIT',
     keywords='search nearest neighbors',
 
-    install_requires=['numpy', 'packaging'],
+    install_requires=['numpy>1,<2', 'packaging'],
     packages=['faiss', 'faiss.contrib'],
     package_data={
         'faiss': ['*.so', '*.pyd'],
     },
     zip_safe=False,
+    options={
+        'bdist_wheel': {'plat_name': f'manylinux_2_27_{machine}'}
+    }
 )

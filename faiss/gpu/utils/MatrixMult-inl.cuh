@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <cublas_v2.h>
@@ -76,7 +81,11 @@ cublasStatus_t rawGemm(
                 C,
                 CUDA_R_32F,
                 ldc,
+#ifdef FAISS_WITH_MACA
+                CUDA_R_32F,
+#else
                 CUBLAS_COMPUTE_32F_PEDANTIC,
+#endif
                 CUBLAS_GEMM_DEFAULT);
     }
 #endif

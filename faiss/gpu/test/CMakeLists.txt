@@ -22,13 +22,19 @@ find_package(CUDAToolkit REQUIRED)
 # Defines `gtest_discover_tests()`.
 include(GoogleTest)
 
+include(../../../cmake/xgpu.cmake)
+
 add_library(faiss_gpu_test_helper TestUtils.cpp)
 target_link_libraries(faiss_gpu_test_helper PUBLIC faiss gtest CUDA::cudart $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::raft> $<$<BOOL:${FAISS_ENABLE_RAFT}>:raft::compiled>)
+target_compile_options(faiss_gpu_test_helper PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${EXTRA_CXX_COMPILE_OPTIONS_FOR_MACA}>)
+target_compile_options(faiss_gpu_test_helper PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${EXTRA_CUDA_COMPILE_OPTIONS_FOR_MACA}>)
 
 macro(faiss_gpu_test file)
   get_filename_component(test_name ${file} NAME_WE)
   add_executable(${test_name} ${file})
   target_link_libraries(${test_name} PRIVATE faiss_gpu_test_helper)
+  target_compile_options(${test_name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${EXTRA_CXX_COMPILE_OPTIONS_FOR_MACA}>)
+  target_compile_options(${test_name} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${EXTRA_CUDA_COMPILE_OPTIONS_FOR_MACA}>)
   gtest_discover_tests(${test_name})
 endmacro()
 
@@ -45,6 +51,9 @@ faiss_gpu_test(TestGpuSelect.cu)
 
 add_executable(demo_ivfpq_indexing_gpu EXCLUDE_FROM_ALL
   demo_ivfpq_indexing_gpu.cpp)
+
+target_compile_options(demo_ivfpq_indexing_gpu PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${EXTRA_CXX_COMPILE_OPTIONS_FOR_MACA}>)
+target_compile_options(demo_ivfpq_indexing_gpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${EXTRA_CUDA_COMPILE_OPTIONS_FOR_MACA}>)
 
 target_link_libraries(demo_ivfpq_indexing_gpu
   PRIVATE faiss gtest_main CUDA::cudart)

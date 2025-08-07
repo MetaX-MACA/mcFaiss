@@ -113,7 +113,13 @@ struct GpuDistanceParams {
 
 /// A function that determines whether RAFT should be used based on various
 /// conditions (such as unsupported architecture)
+#if defined USE_NVIDIA_RAFT
 bool should_use_raft(GpuDistanceParams args);
+#else
+static inline bool should_use_raft(GpuDistanceParams args) {
+    return args.use_raft;
+}
+#endif
 
 /// A wrapper for gpu/impl/Distance.cuh to expose direct brute-force k-nearest
 /// neighbor searches on an externally-provided region of memory (e.g., from a

@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/MetricType.h>
@@ -35,7 +40,8 @@ template <
         typename Metric,
         int ThreadsPerBlock,
         int NumWarpQ,
-        int NumThreadQ>
+        int NumThreadQ,
+        bool Residual>
 __global__ void ivfInterleavedScan(
         Tensor<float, 2, true> queries,
         Tensor<float, 3, true> residualBase,
@@ -47,8 +53,7 @@ __global__ void ivfInterleavedScan(
         int k,
         // [query][probe][k]
         Tensor<float, 3, true> distanceOut,
-        Tensor<idx_t, 3, true> indicesOut,
-        const bool Residual) {
+        Tensor<idx_t, 3, true> indicesOut) {
     extern __shared__ float smem[];
 
     constexpr int kNumWarps = ThreadsPerBlock / kWarpSize;
@@ -99,10 +104,11 @@ __global__ void ivfInterleavedScan(
         __syncthreads();
 
         // How many vector blocks of 32 are in this list?
-        idx_t numBlocks = utils::divUp(numVecs, (idx_t)32);
+        idx_t numBlocks = utils::divUp(numVecs, (idx_t)kWarpSize);
 
         // Number of EncodeT words per each dimension of block of 32 vecs
-        constexpr int bytesPerVectorBlockDim = Codec::kEncodeBits * 32 / 8;
+        constexpr int bytesPerVectorBlockDim =
+                Codec::kEncodeBits * kWarpSize / 8;
         constexpr int wordsPerVectorBlockDim =
                 bytesPerVectorBlockDim / sizeof(EncodeT);
         int wordsPerVectorBlock = wordsPerVectorBlockDim * dim;
@@ -127,9 +133,8 @@ __global__ void ivfInterleavedScan(
                 const float residualReg =
                         Residual ? residualBaseSlice[loadDim] : 0;
 
-                constexpr int kUnroll = 4;
+                constexpr int kUnroll = 16;
 
-#pragma unroll
                 for (int i = 0; i < kWarpSize / kUnroll;
                      ++i, data += kUnroll * wordsPerVectorBlockDim) {
                     EncodeT encV[kUnroll];

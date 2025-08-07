@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/gpu/utils/Float16.cuh>
@@ -34,6 +39,8 @@ struct LoadStore {
     }
 };
 
+// TODO: Check if any specilizations possible for MACA
+#ifndef FAISS_WITH_MACA
 template <>
 struct LoadStore<Half4> {
     static inline __device__ Half4 load(void* p) {
@@ -96,6 +103,8 @@ struct LoadStore<Half8> {
 #endif
     }
 };
+
+#endif // FAISS_WITH_MACA
 
 } // namespace gpu
 } // namespace faiss

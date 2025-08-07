@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/gpu/utils/StaticUtils.h>
@@ -91,7 +96,7 @@ template <
         bool Dir,
         typename Comp,
         bool IsBitonic>
-inline __device__ void warpBitonicMergeLE16(K& k, V& v) {
+__forceinline__ __device__ void warpBitonicMergeLE16(K& k, V& v) {
     static_assert(utils::isPowerOf2(L), "L must be a power-of-2");
     static_assert(L <= kWarpSize / 2, "merge list size must be <= 16");
 
@@ -162,15 +167,19 @@ struct BitonicMergeStep {};
 // All merges eventually call this
 template <typename K, typename V, bool Dir, typename Comp, bool Low>
 struct BitonicMergeStep<K, V, 1, Dir, Comp, Low, true> {
-    static inline __device__ void merge(K k[1], V v[1]) {
+    static __forceinline__ __device__ void merge(K k[1], V v[1]) {
         // Use warp shuffles
+#ifndef FAISS_WITH_MACA
         warpBitonicMergeLE16<K, V, 16, Dir, Comp, true>(k[0], v[0]);
+#else
+        warpBitonicMergeLE16<K, V, 32, Dir, Comp, true>(k[0], v[0]);
+#endif
     }
 };
 
 template <typename K, typename V, int N, bool Dir, typename Comp, bool Low>
 struct BitonicMergeStep<K, V, N, Dir, Comp, Low, true> {
-    static inline __device__ void merge(K k[N], V v[N]) {
+    static __forceinline__ __device__ void merge(K k[N], V v[N]) {
         static_assert(utils::isPowerOf2(N), "must be power of 2");
         static_assert(N > 1, "must be N > 1");
 
@@ -236,7 +245,7 @@ struct BitonicMergeStep<K, V, N, Dir, Comp, Low, true> {
 // Low recursion
 template <typename K, typename V, int N, bool Dir, typename Comp>
 struct BitonicMergeStep<K, V, N, Dir, Comp, true, false> {
-    static inline __device__ void merge(K k[N], V v[N]) {
+    static __forceinline__ __device__ void merge(K k[N], V v[N]) {
         static_assert(!utils::isPowerOf2(N), "must be non-power-of-2");
         static_assert(N >= 3, "must be N >= 3");
 
@@ -323,7 +332,7 @@ struct BitonicMergeStep<K, V, N, Dir, Comp, true, false> {
 // High recursion
 template <typename K, typename V, int N, bool Dir, typename Comp>
 struct BitonicMergeStep<K, V, N, Dir, Comp, false, false> {
-    static inline __device__ void merge(K k[N], V v[N]) {
+    static __forceinline__ __device__ void merge(K k[N], V v[N]) {
         static_assert(!utils::isPowerOf2(N), "must be non-power-of-2");
         static_assert(N >= 3, "must be N >= 3");
 
@@ -419,7 +428,7 @@ template <
         bool Dir,
         typename Comp,
         bool FullMerge = true>
-inline __device__ void warpMergeAnyRegisters(
+__forceinline__ __device__ void warpMergeAnyRegisters(
         K k1[N1],
         V v1[N1],
         K k2[N2],
@@ -477,7 +486,7 @@ inline __device__ void warpMergeAnyRegisters(
 // bitonic sort
 template <typename K, typename V, int N, bool Dir, typename Comp>
 struct BitonicSortStep {
-    static inline __device__ void sort(K k[N], V v[N]) {
+    static __forceinline__ __device__ void sort(K k[N], V v[N]) {
         static_assert(N > 1, "did not hit specialized case");
 
         // Sort recursively
@@ -526,23 +535,28 @@ struct BitonicSortStep {
 // Single warp (N == 1) sorting specialization
 template <typename K, typename V, bool Dir, typename Comp>
 struct BitonicSortStep<K, V, 1, Dir, Comp> {
-    static inline __device__ void sort(K k[1], V v[1]) {
+    static __forceinline__ __device__ void sort(K k[1], V v[1]) {
         // Update this code if this changes
         // should go from 1 -> kWarpSize in multiples of 2
+#ifndef FAISS_WITH_MACA
         static_assert(kWarpSize == 32, "unexpected warp size");
+#endif
 
         warpBitonicMergeLE16<K, V, 1, Dir, Comp, false>(k[0], v[0]);
         warpBitonicMergeLE16<K, V, 2, Dir, Comp, false>(k[0], v[0]);
         warpBitonicMergeLE16<K, V, 4, Dir, Comp, false>(k[0], v[0]);
         warpBitonicMergeLE16<K, V, 8, Dir, Comp, false>(k[0], v[0]);
         warpBitonicMergeLE16<K, V, 16, Dir, Comp, false>(k[0], v[0]);
+#ifdef FAISS_WITH_MACA
+        warpBitonicMergeLE16<K, V, 32, Dir, Comp, false>(k[0], v[0]);
+#endif
     }
 };
 
 /// Sort a list of kWarpSize * N elements in registers, where N is an
 /// arbitrary >= 1
 template <typename K, typename V, int N, bool Dir, typename Comp>
-inline __device__ void warpSortAnyRegisters(K k[N], V v[N]) {
+__forceinline__ __device__ void warpSortAnyRegisters(K k[N], V v[N]) {
     BitonicSortStep<K, V, N, Dir, Comp>::sort(k, v);
 }
 

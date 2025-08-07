@@ -75,6 +75,11 @@ void GpuIcmEncoder::set_binary_term() {
     shards->runOnShards(fn);
 }
 
+// C500-24058: Shard-based parallel encoding with as-even-as-possible
+// distribution handling.
+// - `base_shard_size`: Each shard processes `n / nshards` vectors as the
+// minimum.
+// - `remain`: The first `n % nshards` shards handle an additional vector each.
 void GpuIcmEncoder::encode(
         int32_t* codes,
         const float* x,
@@ -82,7 +87,7 @@ void GpuIcmEncoder::encode(
         size_t n,
         size_t ils_iters) const {
     size_t nshards = shards->size();
-    size_t shard_size = (n + nshards - 1) / nshards;
+    size_t base_shard_size = n / nshards;
 
     auto codebooks = lsq->codebooks.data();
     auto M = lsq->M;
@@ -94,8 +99,14 @@ void GpuIcmEncoder::encode(
 
     // split input data
     auto fn = [=](int idx, IcmEncoderImpl* encoder) {
-        size_t i0 = idx * shard_size;
-        size_t ni = std::min(shard_size, n - i0);
+        auto ni = base_shard_size;
+        if (idx < n % nshards) {
+            ++ni;
+        }
+        size_t i0 = idx * base_shard_size + std::min(size_t(idx), n % nshards);
+        if (ni <= 0) { // only if n < nshards
+            return;
+        }
         auto xi = x + i0 * d;
         auto ci = codes + i0 * M;
         std::mt19937 geni(idx + seed); // different seed for each shard

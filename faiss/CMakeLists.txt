@@ -290,9 +290,9 @@ if(WIN32)
   target_compile_definitions(faiss_avx512 PRIVATE FAISS_MAIN_LIB)
 endif()
 
-target_compile_definitions(faiss PRIVATE FINTEGER=int)
-target_compile_definitions(faiss_avx2 PRIVATE FINTEGER=int)
-target_compile_definitions(faiss_avx512 PRIVATE FINTEGER=int)
+target_compile_definitions(faiss PRIVATE FINTEGER=int ${FAISS_EXTRA_DEFINITIONS})
+target_compile_definitions(faiss_avx2 PRIVATE FINTEGER=int ${FAISS_EXTRA_DEFINITIONS})
+target_compile_definitions(faiss_avx512 PRIVATE FINTEGER=int ${FAISS_EXTRA_DEFINITIONS})
 
 find_package(OpenMP REQUIRED)
 target_link_libraries(faiss PRIVATE OpenMP::OpenMP_CXX)
@@ -338,6 +338,9 @@ if(FAISS_OPT_LEVEL STREQUAL "avx512")
   )
 endif()
 
+# build twice so DO NOT install headers/others while compile shared library
+if(NOT BUILD_SHARED_LIBS)
+
 foreach(header ${FAISS_HEADERS})
   get_filename_component(dir ${header} DIRECTORY )
   install(FILES ${header}
@@ -364,3 +367,5 @@ install(FILES ${PROJECT_BINARY_DIR}/cmake/faiss-config.cmake
 install(EXPORT faiss-targets
   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/faiss
 )
+
+endif(NOT BUILD_SHARED_LIBS)

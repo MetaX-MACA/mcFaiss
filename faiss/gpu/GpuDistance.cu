@@ -51,6 +51,7 @@ using namespace raft::distance;
 using namespace raft::neighbors;
 #endif
 
+#if defined USE_NVIDIA_RAFT
 bool should_use_raft(GpuDistanceParams args) {
     cudaDeviceProp prop;
     int dev = args.device >= 0 ? args.device : getCurrentDevice();
@@ -61,6 +62,7 @@ bool should_use_raft(GpuDistanceParams args) {
 
     return args.use_raft;
 }
+#endif
 
 template <typename T>
 void bfKnnConvert(GpuResourcesProvider* prov, const GpuDistanceParams& args) {

@@ -22,7 +22,9 @@ namespace gpu {
 // 2048, 8
 
 WARP_SELECT_DECL(float, true, 1);
+#ifndef FAISS_WITH_MACA
 WARP_SELECT_DECL(float, true, 32);
+#endif
 WARP_SELECT_DECL(float, true, 64);
 WARP_SELECT_DECL(float, true, 128);
 WARP_SELECT_DECL(float, true, 256);
@@ -33,7 +35,9 @@ WARP_SELECT_DECL(float, true, 2048);
 #endif
 
 WARP_SELECT_DECL(float, false, 1);
+#ifndef FAISS_WITH_MACA
 WARP_SELECT_DECL(float, false, 32);
+#endif
 WARP_SELECT_DECL(float, false, 64);
 WARP_SELECT_DECL(float, false, 128);
 WARP_SELECT_DECL(float, false, 256);
@@ -55,8 +59,10 @@ void runWarpSelect(
     if (dir) {
         if (k == 1) {
             WARP_SELECT_CALL(float, true, 1);
+#ifndef FAISS_WITH_MACA
         } else if (k <= 32) {
             WARP_SELECT_CALL(float, true, 32);
+#endif
         } else if (k <= 64) {
             WARP_SELECT_CALL(float, true, 64);
         } else if (k <= 128) {
@@ -75,8 +81,10 @@ void runWarpSelect(
     } else {
         if (k == 1) {
             WARP_SELECT_CALL(float, false, 1);
+#ifndef FAISS_WITH_MACA
         } else if (k <= 32) {
             WARP_SELECT_CALL(float, false, 32);
+#endif
         } else if (k <= 64) {
             WARP_SELECT_CALL(float, false, 64);
         } else if (k <= 128) {

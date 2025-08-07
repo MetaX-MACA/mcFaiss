@@ -10,8 +10,10 @@
 namespace faiss {
 namespace gpu {
 
+#ifndef FAISS_WITH_MACA
 WARP_SELECT_IMPL(float, true, 32, 2);
 WARP_SELECT_IMPL(float, false, 32, 2);
+#endif
 
 } // namespace gpu
 } // namespace faiss

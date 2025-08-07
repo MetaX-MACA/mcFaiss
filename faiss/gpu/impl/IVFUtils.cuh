@@ -50,7 +50,8 @@ size_t getIVFPQPerQueryTempMemory(
 size_t getIVFQueryTileSize(
         size_t numQueries,
         size_t tempMemoryAvailable,
-        size_t sizePerQuery);
+        size_t sizePerQuery,
+        size_t nprobe);
 
 /// Function for multi-pass scanning that collects the length of
 /// intermediate results for all (query, probe) pair

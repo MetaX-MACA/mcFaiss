@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserverd.
+ */
+
 #include <faiss/gpu/impl/IVFInterleaved.cuh>
 #include <faiss/gpu/impl/scan/IVFInterleavedImpl.cuh>
 
@@ -151,23 +156,25 @@ void runIVFInterleavedScan2(
                     indicesOut)
 
     if (k == 1) {
-        IVF_SCAN_2(128, 1, 1);
+        IVF_SCAN_2(kSortThreadCount, 1, 1);
+#ifndef FAISS_WITH_MACA
     } else if (k <= 32) {
-        IVF_SCAN_2(128, 32, 2);
+        IVF_SCAN_2(kSortThreadCount, 32, 2);
+#endif
     } else if (k <= 64) {
-        IVF_SCAN_2(128, 64, 3);
+        IVF_SCAN_2(kSortThreadCount, 64, 3);
     } else if (k <= 128) {
-        IVF_SCAN_2(128, 128, 3);
+        IVF_SCAN_2(kSortThreadCount, 128, 3);
     } else if (k <= 256) {
-        IVF_SCAN_2(128, 256, 4);
+        IVF_SCAN_2(kSortThreadCount, 256, 4);
     } else if (k <= 512) {
-        IVF_SCAN_2(128, 512, 8);
+        IVF_SCAN_2(kSortThreadCount, 512, 8);
     } else if (k <= 1024) {
-        IVF_SCAN_2(128, 1024, 8);
+        IVF_SCAN_2(kSortThreadCount, 1024, 8);
     }
 #if GPU_MAX_SELECTION_K >= 2048
     else if (k <= 2048) {
-        IVF_SCAN_2(64, 2048, 8);
+        IVF_SCAN_2(kSortThreadCountFor2048, 2048, 8);
     }
 #endif
 }
@@ -210,23 +217,26 @@ void runIVFInterleavedScan(
     };
 
     if (k == 1) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 1, 1>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 1, 1>);
+#ifndef FAISS_WITH_MACA
     } else if (k <= 32) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 32, 2>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 32, 2>);
+#endif
     } else if (k <= 64) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 64, 3>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 64, 3>);
     } else if (k <= 128) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 128, 3>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 128, 3>);
     } else if (k <= 256) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 256, 4>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 256, 4>);
     } else if (k <= 512) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 512, 8>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 512, 8>);
     } else if (k <= 1024) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<128, 1024, 8>);
+        ivf_interleaved_call(ivfInterleavedScanImpl<kSortThreadCount, 1024, 8>);
     }
 #if GPU_MAX_SELECTION_K >= 2048
     else if (k <= 2048) {
-        ivf_interleaved_call(ivfInterleavedScanImpl<64, 2048, 8>);
+        ivf_interleaved_call(
+                ivfInterleavedScanImpl<kSortThreadCountFor2048, 2048, 8>);
     }
 #endif
 }

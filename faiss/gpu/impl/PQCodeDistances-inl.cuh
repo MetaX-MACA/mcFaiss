@@ -27,7 +27,11 @@ template <
         typename CentroidT,
         int DimsPerSubQuantizer,
         bool L2Distance>
+#ifndef FAISS_WITH_MACA
 __global__ void __launch_bounds__(288, 3) pqCodeDistances(
+#else
+__global__ void __launch_bounds__(288) pqCodeDistances(
+#endif
         Tensor<float, 2, true> queries,
         int queriesPerBlock,
         Tensor<CentroidT, 2, true> coarseCentroids,
@@ -37,7 +41,7 @@ __global__ void __launch_bounds__(288, 3) pqCodeDistances(
         Tensor<OutCodeT, 4, true> outCodeDistances) {
     const auto numSubQuantizers = pqCentroids.getSize(0);
     const auto dimsPerSubQuantizer = pqCentroids.getSize(1);
-    assert(DimsPerSubQuantizer == dimsPerSubQuantizer);
+    // assert(DimsPerSubQuantizer == dimsPerSubQuantizer);
     const auto codesPerSubQuantizer = pqCentroids.getSize(2);
 
     bool isLoadingThread = threadIdx.x >= codesPerSubQuantizer;

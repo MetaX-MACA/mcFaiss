@@ -370,7 +370,8 @@ void runIVFFlatScan(
     idx_t queryTileSize = getIVFQueryTileSize(
             queries.getSize(0),
             res->getTempMemoryAvailableCurrentDevice(),
-            sizePerQuery);
+            sizePerQuery,
+            nprobe);
 
     // Temporary memory buffers
     // Make sure there is space prior to the start which will be 0, and

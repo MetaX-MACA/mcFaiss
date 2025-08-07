@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/**
+ * 2024 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <cuda.h>
@@ -18,7 +23,15 @@ namespace gpu {
 #endif
 
 // We validate this against the actual architecture in device initialization
+#ifndef FAISS_WITH_MACA
 constexpr int kWarpSize = 32;
+constexpr int kSortThreadCount = 128;
+constexpr int kSortThreadCountFor2048 = 64;
+#else
+constexpr int kWarpSize = 64;
+constexpr int kSortThreadCount = 256;
+constexpr int kSortThreadCountFor2048 = 128;
+#endif
 
 // This is a memory barrier for intra-warp writes to shared memory.
 __forceinline__ __device__ void warpFence() {
