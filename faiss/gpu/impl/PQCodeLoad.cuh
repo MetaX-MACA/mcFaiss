@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/gpu/utils/PtxUtils.cuh>
@@ -288,7 +293,11 @@ struct LoadCode32<1> {
             uint8_t* p,
             int offset) {
         p += offset * 1;
+#ifndef FAISS_WITH_MACA
         asm("ld.global.cs.u8 {%0}, [%1];" : "=r"(code32[0]) : "l"(p));
+#else
+        code32[0] = __ldcs(p);
+#endif
     }
 };
 
@@ -299,7 +308,11 @@ struct LoadCode32<2> {
             uint8_t* p,
             int offset) {
         p += offset * 2;
+#ifndef FAISS_WITH_MACA
         asm("ld.global.cs.u16 {%0}, [%1];" : "=r"(code32[0]) : "l"(p));
+#else
+        code32[0] = __ldcs(reinterpret_cast<uint16_t*>(p));
+#endif
     }
 };
 
@@ -316,9 +329,15 @@ struct LoadCode32<3> {
 
         // FIXME: this is a non-coalesced, unaligned, non-vectorized load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm("ld.global.cs.u8 {%0}, [%1 + 0];" : "=r"(a) : "l"(p));
         asm("ld.global.cs.u8 {%0}, [%1 + 1];" : "=r"(b) : "l"(p));
         asm("ld.global.cs.u8 {%0}, [%1 + 2];" : "=r"(c) : "l"(p));
+#else
+        a = __ldcs(p);
+        b = __ldcs(p + 1);
+        c = __ldcs(p + 2);
+#endif
 
         // FIXME: this is also slow, since we have to recover the
         // individual bytes loaded
@@ -333,7 +352,11 @@ struct LoadCode32<4> {
             uint8_t* p,
             int offset) {
         p += offset * 4;
+#ifndef FAISS_WITH_MACA
         asm("ld.global.cs.u32 {%0}, [%1];" : "=r"(code32[0]) : "l"(p));
+#else
+        code32[0] = __ldcs(reinterpret_cast<uint32_t*>(p));
+#endif
     }
 };
 
@@ -344,9 +367,14 @@ struct LoadCode32<8> {
             uint8_t* p,
             int offset) {
         p += offset * 8;
+#ifndef FAISS_WITH_MACA
         asm("ld.global.cs.v2.u32 {%0, %1}, [%2];"
             : "=r"(code32[0]), "=r"(code32[1])
             : "l"(p));
+#else
+        uint2* pcode32 = reinterpret_cast<uint2*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint2*>(p));
+#endif
     }
 };
 
@@ -359,9 +387,15 @@ struct LoadCode32<12> {
         p += offset * 12;
         // FIXME: this is a non-coalesced, unaligned, non-vectorized load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V1 " {%0}, [%1 + 0];" : "=r"(code32[0]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 4];" : "=r"(code32[1]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 8];" : "=r"(code32[2]) : "l"(p));
+#else
+        code32[0] = __ldcs(reinterpret_cast<uint32_t*>(p));
+        code32[1] = __ldcs(reinterpret_cast<uint32_t*>(p + 4));
+        code32[2] = __ldcs(reinterpret_cast<uint32_t*>(p + 8));
+#endif
     }
 };
 
@@ -372,9 +406,14 @@ struct LoadCode32<16> {
             uint8_t* p,
             int offset) {
         p += offset * 16;
+#ifndef FAISS_WITH_MACA
         asm("ld.global.cs.v4.u32 {%0, %1, %2, %3}, [%4];"
             : "=r"(code32[0]), "=r"(code32[1]), "=r"(code32[2]), "=r"(code32[3])
             : "l"(p));
+#else
+        uint4* pcode32 = reinterpret_cast<uint4*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint4*>(p));
+#endif
     }
 };
 
@@ -387,11 +426,19 @@ struct LoadCode32<20> {
         p += offset * 20;
         // FIXME: this is a non-coalesced, unaligned, non-vectorized load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V1 " {%0}, [%1 + 0];" : "=r"(code32[0]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 4];" : "=r"(code32[1]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 8];" : "=r"(code32[2]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 12];" : "=r"(code32[3]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 16];" : "=r"(code32[4]) : "l"(p));
+#else
+        code32[0] = __ldcs(reinterpret_cast<uint32_t*>(p));
+        code32[1] = __ldcs(reinterpret_cast<uint32_t*>(p + 4));
+        code32[2] = __ldcs(reinterpret_cast<uint32_t*>(p + 8));
+        code32[3] = __ldcs(reinterpret_cast<uint32_t*>(p + 12));
+        code32[4] = __ldcs(reinterpret_cast<uint32_t*>(p + 16));
+#endif
     }
 };
 
@@ -404,6 +451,7 @@ struct LoadCode32<24> {
         p += offset * 24;
         // FIXME: this is a non-coalesced, unaligned, 2-vectorized load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V2 " {%0, %1}, [%2 + 0];"
             : "=r"(code32[0]), "=r"(code32[1])
             : "l"(p));
@@ -413,6 +461,12 @@ struct LoadCode32<24> {
         asm(LD_NC_V2 " {%0, %1}, [%2 + 16];"
             : "=r"(code32[4]), "=r"(code32[5])
             : "l"(p));
+#else
+        uint2* pcode32 = reinterpret_cast<uint2*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint2*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint2*>(p + 8));
+        *(pcode32 + 2) = __ldcs(reinterpret_cast<uint2*>(p + 16));
+#endif
     }
 };
 
@@ -425,6 +479,8 @@ struct LoadCode32<28> {
         p += offset * 28;
         // FIXME: this is a non-coalesced, unaligned, non-vectorized load
         // unfortunately need to reorganize memory layout by warp
+
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V1 " {%0}, [%1 + 0];" : "=r"(code32[0]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 4];" : "=r"(code32[1]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 8];" : "=r"(code32[2]) : "l"(p));
@@ -432,6 +488,15 @@ struct LoadCode32<28> {
         asm(LD_NC_V1 " {%0}, [%1 + 16];" : "=r"(code32[4]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 20];" : "=r"(code32[5]) : "l"(p));
         asm(LD_NC_V1 " {%0}, [%1 + 24];" : "=r"(code32[6]) : "l"(p));
+#else
+        code32[0] = __ldcs(reinterpret_cast<uint32_t*>(p));
+        code32[1] = __ldcs(reinterpret_cast<uint32_t*>(p + 4));
+        code32[2] = __ldcs(reinterpret_cast<uint32_t*>(p + 8));
+        code32[3] = __ldcs(reinterpret_cast<uint32_t*>(p + 12));
+        code32[4] = __ldcs(reinterpret_cast<uint32_t*>(p + 16));
+        code32[5] = __ldcs(reinterpret_cast<uint32_t*>(p + 20));
+        code32[6] = __ldcs(reinterpret_cast<uint32_t*>(p + 24));
+#endif
     }
 };
 
@@ -444,12 +509,20 @@ struct LoadCode32<32> {
         p += offset * 32;
         // FIXME: this is a non-coalesced load
         // unfortunately need to reorganize memory layout by warp
+
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V4 " {%0, %1, %2, %3}, [%4];"
             : "=r"(code32[0]), "=r"(code32[1]), "=r"(code32[2]), "=r"(code32[3])
             : "l"(p));
         asm(LD_NC_V4 " {%0, %1, %2, %3}, [%4 + 16];"
             : "=r"(code32[4]), "=r"(code32[5]), "=r"(code32[6]), "=r"(code32[7])
             : "l"(p));
+
+#else
+        uint4* pcode32 = reinterpret_cast<uint4*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint4*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint4*>(p + 16));
+#endif
     }
 };
 
@@ -462,6 +535,8 @@ struct LoadCode32<40> {
         p += offset * 40;
         // FIXME: this is a non-coalesced, unaligned, 2-vectorized load
         // unfortunately need to reorganize memory layout by warp
+
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V2 " {%0, %1}, [%2 + 0];"
             : "=r"(code32[0]), "=r"(code32[1])
             : "l"(p));
@@ -477,6 +552,14 @@ struct LoadCode32<40> {
         asm(LD_NC_V2 " {%0, %1}, [%2 + 32];"
             : "=r"(code32[8]), "=r"(code32[9])
             : "l"(p));
+#else
+        uint2* pcode32 = reinterpret_cast<uint2*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint2*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint2*>(p + 8));
+        *(pcode32 + 2) = __ldcs(reinterpret_cast<uint2*>(p + 16));
+        *(pcode32 + 3) = __ldcs(reinterpret_cast<uint2*>(p + 24));
+        *(pcode32 + 4) = __ldcs(reinterpret_cast<uint2*>(p + 32));
+#endif
     }
 };
 
@@ -489,6 +572,8 @@ struct LoadCode32<48> {
         p += offset * 48;
         // FIXME: this is a non-coalesced load
         // unfortunately need to reorganize memory layout by warp
+
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V4 " {%0, %1, %2, %3}, [%4];"
             : "=r"(code32[0]), "=r"(code32[1]), "=r"(code32[2]), "=r"(code32[3])
             : "l"(p));
@@ -501,6 +586,12 @@ struct LoadCode32<48> {
               "=r"(code32[10]),
               "=r"(code32[11])
             : "l"(p));
+#else
+        uint4* pcode32 = reinterpret_cast<uint4*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint4*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint4*>(p + 16));
+        *(pcode32 + 2) = __ldcs(reinterpret_cast<uint4*>(p + 32));
+#endif
     }
 };
 
@@ -513,6 +604,7 @@ struct LoadCode32<56> {
         p += offset * 56;
         // FIXME: this is a non-coalesced, unaligned, 2-vectorized load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V2 " {%0, %1}, [%2 + 0];"
             : "=r"(code32[0]), "=r"(code32[1])
             : "l"(p));
@@ -534,6 +626,16 @@ struct LoadCode32<56> {
         asm(LD_NC_V2 " {%0, %1}, [%2 + 48];"
             : "=r"(code32[12]), "=r"(code32[13])
             : "l"(p));
+#else
+        uint2* pcode32 = reinterpret_cast<uint2*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint2*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint2*>(p + 8));
+        *(pcode32 + 2) = __ldcs(reinterpret_cast<uint2*>(p + 16));
+        *(pcode32 + 3) = __ldcs(reinterpret_cast<uint2*>(p + 24));
+        *(pcode32 + 4) = __ldcs(reinterpret_cast<uint2*>(p + 32));
+        *(pcode32 + 5) = __ldcs(reinterpret_cast<uint2*>(p + 40));
+        *(pcode32 + 6) = __ldcs(reinterpret_cast<uint2*>(p + 48));
+#endif
     }
 };
 
@@ -546,6 +648,7 @@ struct LoadCode32<64> {
         p += offset * 64;
         // FIXME: this is a non-coalesced load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V4 " {%0, %1, %2, %3}, [%4];"
             : "=r"(code32[0]), "=r"(code32[1]), "=r"(code32[2]), "=r"(code32[3])
             : "l"(p));
@@ -564,6 +667,13 @@ struct LoadCode32<64> {
               "=r"(code32[14]),
               "=r"(code32[15])
             : "l"(p));
+#else
+        uint4* pcode32 = reinterpret_cast<uint4*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint4*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint4*>(p + 16));
+        *(pcode32 + 2) = __ldcs(reinterpret_cast<uint4*>(p + 32));
+        *(pcode32 + 3) = __ldcs(reinterpret_cast<uint4*>(p + 48));
+#endif
     }
 };
 
@@ -576,6 +686,7 @@ struct LoadCode32<96> {
         p += offset * 96;
         // FIXME: this is a non-coalesced load
         // unfortunately need to reorganize memory layout by warp
+#ifndef FAISS_WITH_MACA
         asm(LD_NC_V4 " {%0, %1, %2, %3}, [%4];"
             : "=r"(code32[0]), "=r"(code32[1]), "=r"(code32[2]), "=r"(code32[3])
             : "l"(p));
@@ -606,6 +717,15 @@ struct LoadCode32<96> {
               "=r"(code32[22]),
               "=r"(code32[23])
             : "l"(p));
+#else
+        uint4* pcode32 = reinterpret_cast<uint4*>(code32);
+        *pcode32 = __ldcs(reinterpret_cast<uint4*>(p));
+        *(pcode32 + 1) = __ldcs(reinterpret_cast<uint4*>(p + 16));
+        *(pcode32 + 2) = __ldcs(reinterpret_cast<uint4*>(p + 32));
+        *(pcode32 + 3) = __ldcs(reinterpret_cast<uint4*>(p + 48));
+        *(pcode32 + 4) = __ldcs(reinterpret_cast<uint4*>(p + 64));
+        *(pcode32 + 5) = __ldcs(reinterpret_cast<uint4*>(p + 80));
+#endif
     }
 };
 

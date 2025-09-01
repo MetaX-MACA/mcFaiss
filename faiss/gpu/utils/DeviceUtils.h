@@ -76,11 +76,31 @@ bool getTensorCoreSupport(int device);
 /// Equivalent to getTensorCoreSupport(getCurrentDevice())
 bool getTensorCoreSupportCurrentDevice();
 
+#if USE_AMD_ROCM
 /// Returns the warp size of the given GPU device
 int getWarpSize(int device);
 
 /// Equivalent to getWarpSize(getCurrentDevice())
 int getWarpSizeCurrentDevice();
+#else
+/// Returns the warp size of the given GPU device
+constexpr static int getWarpSize(int device) {
+#ifndef FAISS_WITH_MACA
+    return 32;
+#else
+    return 64;
+#endif
+}
+
+/// Equivalent to getWarpSize(getCurrentDevice())
+constexpr static int getWarpSizeCurrentDevice() {
+#ifndef FAISS_WITH_MACA
+    return 32;
+#else
+    return 64;
+#endif
+}
+#endif
 
 /// Returns the amount of currently available memory on the given device
 size_t getFreeMemory(int device);

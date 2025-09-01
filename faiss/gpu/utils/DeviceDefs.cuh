@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <cuda.h>
@@ -19,6 +24,9 @@ constexpr int kWarpSize = 32;
 #else
 constexpr int kWarpSize = 64;
 #endif
+
+constexpr int kSortThreadCount = 128;
+constexpr int kSortThreadCountFor2048 = 64;
 
 // This is a memory barrier for intra-warp writes to shared memory.
 __forceinline__ __device__ void warpFence() {
@@ -35,7 +43,19 @@ __forceinline__ __device__ void warpFence() {
 #endif
 
 // We validate this against the actual architecture in device initialization
+#ifndef FAISS_WITH_MACA
 constexpr int kWarpSize = 32;
+using WarpMaskT = uint32_t;
+static constexpr WarpMaskT kWarpAllMask = 0xffffffffu;
+constexpr int kSortThreadCount = 128;
+constexpr int kSortThreadCountFor2048 = 64;
+#else
+constexpr int kWarpSize = 64;
+using WarpMaskT = uint64_t;
+static constexpr WarpMaskT kWarpAllMask = 0xffffffffffffffffull;
+constexpr int kSortThreadCount = 256;
+constexpr int kSortThreadCountFor2048 = 128;
+#endif
 
 // This is a memory barrier for intra-warp writes to shared memory.
 __forceinline__ __device__ void warpFence() {

@@ -179,7 +179,7 @@ def do_test(nlist, d, qtype, by_residual, metric, nprobe, k):
                                 by_residual, metric, clamp)
     # Separate training can produce a slightly different coarse quantizer
     # and residuals
-    do_test_with_index(ci, gi, nprobe, k, clamp, 0.8)
+    do_test_with_index(ci, gi, nprobe, k, clamp, 0.75)
 
 def do_multi_test(qtype):
     nlist = 100

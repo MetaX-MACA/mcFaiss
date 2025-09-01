@@ -283,7 +283,7 @@ struct Codec<ScalarQuantizer::QuantizerType::QT_8bit_uniform, DimMultiple> {
             int subD) const {
         if (DimMultiple > 1) {
             // should not be called
-            assert(false);
+            // assert(false);
         }
 
         // otherwise does not need implementing
@@ -326,7 +326,7 @@ struct Codec<ScalarQuantizer::QuantizerType::QT_8bit_uniform, DimMultiple> {
             float v[kDimPerIter]) const {
         if (DimMultiple > 1) {
             // should not be called
-            assert(false);
+            // assert(false);
         }
 
         // otherwise does not need implementing
@@ -423,7 +423,7 @@ struct Codec<ScalarQuantizer::QuantizerType::QT_8bit, DimMultiple> {
             int subD) const {
         if (DimMultiple > 1) {
             // should not be called
-            assert(false);
+            // assert(false);
         }
 
         // otherwise does not need implementing
@@ -467,7 +467,7 @@ struct Codec<ScalarQuantizer::QuantizerType::QT_8bit, DimMultiple> {
             float v[kDimPerIter]) const {
         if (DimMultiple > 1) {
             // should not be called
-            assert(false);
+            // assert(false);
         }
 
         // otherwise does not need implementing

@@ -108,6 +108,8 @@ __launch_bounds__(kWarps* kLanes) __global__ void binaryDistanceAnySize(
         if (warpQuery < query.getSize(0)) {
             heap.writeOut(outK[warpQuery].data(), outV[warpQuery].data(), k);
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 
@@ -198,6 +200,8 @@ __global__ void __launch_bounds__(kWarps* kLanes) binaryDistanceLimitSize(
         if (warpQuery < query.getSize(0)) {
             heap.writeOut(outK[warpQuery].data(), outV[warpQuery].data(), k);
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 
@@ -215,9 +219,11 @@ void runBinaryDistanceAnySize(
     if (k == 1) {
         binaryDistanceAnySize<1, 1, BinaryType>
                 <<<grid, block, 0, stream>>>(vecs, query, outK, outV, k);
+#ifndef FAISS_WITH_MACA
     } else if (k <= 32 && getWarpSizeCurrentDevice() == 32) {
         binaryDistanceAnySize<32, 2, BinaryType>
                 <<<grid, block, 0, stream>>>(vecs, query, outK, outV, k);
+#endif
     } else if (k <= 64) {
         binaryDistanceAnySize<64, 3, BinaryType>
                 <<<grid, block, 0, stream>>>(vecs, query, outK, outV, k);
@@ -256,9 +262,11 @@ void runBinaryDistanceLimitSize(
     if (k == 1) {
         binaryDistanceLimitSize<1, 1, BinaryType, ReductionLimit>
                 <<<grid, block, 0, stream>>>(vecs, query, outK, outV, k);
+#ifndef FAISS_WITH_MACA
     } else if (k <= 32 && getWarpSizeCurrentDevice() == 32) {
         binaryDistanceLimitSize<32, 2, BinaryType, ReductionLimit>
                 <<<grid, block, 0, stream>>>(vecs, query, outK, outV, k);
+#endif
     } else if (k <= 64) {
         binaryDistanceLimitSize<64, 3, BinaryType, ReductionLimit>
                 <<<grid, block, 0, stream>>>(vecs, query, outK, outV, k);

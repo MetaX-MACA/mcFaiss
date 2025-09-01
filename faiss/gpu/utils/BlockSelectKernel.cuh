@@ -67,6 +67,8 @@ __global__ void blockSelect(
             outK[row][i] = smemK[i];
             outV[row][i] = smemV[i];
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 
@@ -128,6 +130,8 @@ __global__ void blockSelectPair(
             outK[row][i] = smemK[i];
             outV[row][i] = smemV[i];
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 

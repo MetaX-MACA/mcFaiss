@@ -42,6 +42,7 @@ constexpr idx_t kAddVecSize = (idx_t)512 * 1024;
 // FIXME: parameterize based on algorithm need
 constexpr idx_t kSearchVecSize = (idx_t)32 * 1024;
 
+#if defined USE_NVIDIA_CUVS
 bool should_use_cuvs(GpuIndexConfig config_) {
     auto prop = getDeviceProperties(config_.device);
 
@@ -50,6 +51,7 @@ bool should_use_cuvs(GpuIndexConfig config_) {
 
     return config_.use_cuvs;
 }
+#endif
 
 GpuIndex::GpuIndex(
         std::shared_ptr<GpuResources> resources,
@@ -539,6 +541,10 @@ struct InitGpuCompileOptions {
 
 #ifdef USE_AMD_ROCM
         gpu_compile_options += "AMD_ROCM ";
+#endif
+
+#ifdef FAISS_WITH_MACA
+        gpu_compile_options += "MACA ";
 #endif
     }
 };

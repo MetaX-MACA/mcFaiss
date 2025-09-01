@@ -75,7 +75,12 @@ TensorInfo<T> getTensorInfo(const Tensor<T, Dim, true>& t) {
 }
 
 template <typename T, int DimInput, int DimOutput>
+#ifndef FAISS_WITH_MACA
 __global__ void transposeAny(
+#else
+// default 512, set to avoid recompile
+__launch_bounds__(1024) __global__ void transposeAny(
+#endif
         TensorInfo<T> input,
         TensorInfo<T> output,
         idx_t totalSize) {

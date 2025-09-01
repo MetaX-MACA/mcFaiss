@@ -18,6 +18,9 @@
 # the License.
 # =============================================================================
 
+# 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+# All Rights Reserved.
+
 set(FAISS_GPU_SRC
   GpuAutoTune.cpp
   GpuCloner.cpp
@@ -187,6 +190,17 @@ function(generate_ivf_interleaved_code)
   )
 
   # Used for SUB_THREADS, SUB_NUM_WARP_Q, SUB_NUM_THREAD_Q
+  if (FAISS_WITH_MACA)
+    set(THREADS_AND_WARPS
+      "256|1024|8"
+      "256|1|1"
+      "256|128|3"
+      "256|256|4"
+      "256|512|8"
+      "256|64|3"
+      "128|2048|8"
+    )
+  else (FAISS_WITH_MACA)
   set(THREADS_AND_WARPS
     "128|1024|8"
     "128|1|1"
@@ -197,6 +211,7 @@ function(generate_ivf_interleaved_code)
     "128|64|3"
     "64|2048|8"
   )
+  endif (FAISS_WITH_MACA)
 
   if (FAISS_ENABLE_ROCM)
      list(TRANSFORM FAISS_GPU_SRC REPLACE cu$ hip)
@@ -227,8 +242,18 @@ function(generate_ivf_interleaved_code)
     string(REPLACE "SUB_NUM_WARP_Q" "${sub_num_warp_q}" template_content "${template_content}")
     string(REPLACE "SUB_NUM_THREAD_Q" "${sub_num_thread_q}" template_content "${template_content}")
 
+    set(need_write ON)
+    if(EXISTS "${output_file}")
+      file(READ "${output_file}" old_content)
+      if(template_content STREQUAL old_content)
+        set(need_write OFF)
+      endif()
+     endif()
+
     # Write the modified content to the output file
-    file(WRITE "${output_file}" "${template_content}")
+    if(need_write)
+      file(WRITE "${output_file}" "${template_content}")
+    endif()
 
     # Add the file to the sources
     list(APPEND FAISS_GPU_SRC "${output_file}")
@@ -313,13 +338,28 @@ target_link_libraries(faiss_avx2 PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faiss_gpu
 target_link_libraries(faiss_avx512 PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faiss_gpu>")
 target_link_libraries(faiss_avx512_spr PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faiss_gpu>")
 target_link_libraries(faiss_sve PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faiss_gpu>")
+if(FAISS_WITH_MACA)
+  target_compile_definitions(faiss PUBLIC FAISS_WITH_MACA=1)
+  target_compile_definitions(faiss_avx2 PUBLIC FAISS_WITH_MACA=1)
+  target_compile_definitions(faiss_avx512 PUBLIC FAISS_WITH_MACA=1)
+  target_compile_definitions(faiss_avx512_spr PUBLIC FAISS_WITH_MACA=1)
+  target_compile_definitions(faiss_sve PUBLIC FAISS_WITH_MACA=1)
+endif()
 
+if(NOT BUILD_SHARED_LIBS)
 foreach(header ${FAISS_GPU_HEADERS})
   get_filename_component(dir ${header} DIRECTORY )
   install(FILES ${header}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/faiss/gpu/${dir}
   )
 endforeach()
+
+install(TARGETS faiss_gpu
+  EXPORT faiss-targets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+endif(NOT BUILD_SHARED_LIBS)
 
 if (FAISS_ENABLE_ROCM)
   target_link_libraries(faiss_gpu PRIVATE hip::host roc::hipblas)
@@ -343,8 +383,21 @@ else()
 
   find_package(CUDAToolkit REQUIRED)
   target_link_libraries(faiss_gpu PRIVATE CUDA::cudart CUDA::cublas $<$<BOOL:${FAISS_ENABLE_CUVS}>:cuvs::cuvs> $<$<BOOL:${FAISS_ENABLE_CUVS}>:OpenMP::OpenMP_CXX>)
+
+if (FAISS_WITH_MACA)
+  target_compile_definitions(faiss_gpu PUBLIC FAISS_WITH_MACA=1)
+  set(CMAKE_CUDA_STANDARD 17) # FIXME: not working for MACA
+  target_compile_options(faiss_gpu PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xfatbin=-compress-all
+      --expt-extended-lambda --expt-relaxed-constexpr
+      -std=c++17 # workaround
+      -Wno-maca-min-blocks-per-multiprocessor
+      $<$<BOOL:${FAISS_ENABLE_CUVS}>:-Xcompiler=${OpenMP_CXX_FLAGS}>>
+  )
+else ()
   target_compile_options(faiss_gpu PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:-Xfatbin=-compress-all
     --expt-extended-lambda --expt-relaxed-constexpr
     $<$<BOOL:${FAISS_ENABLE_CUVS}>:-Xcompiler=${OpenMP_CXX_FLAGS}>>)
+endif (FAISS_WITH_MACA)
 endif()

@@ -117,7 +117,13 @@ struct GpuDistanceParams {
 
 /// A function that determines whether cuVS should be used based on various
 /// conditions (such as unsupported architecture)
+#if defined USE_NVIDIA_CUVS
 bool should_use_cuvs(GpuDistanceParams args);
+#else
+static constexpr bool should_use_cuvs(GpuDistanceParams args) {
+    return false;
+}
+#endif
 
 /// A wrapper for gpu/impl/Distance.cuh to expose direct brute-force k-nearest
 /// neighbor searches on an externally-provided region of memory (e.g., from a

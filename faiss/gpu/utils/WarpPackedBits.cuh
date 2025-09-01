@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/gpu/utils/PtxUtils.cuh>
@@ -184,7 +189,7 @@ struct WarpPackedBits<uint8_t, 5> {
                 break;
         }
 
-        if (laneId < 20) {
+        if (laneId < kWarpSize / 8 * 5) {
             // There could be prior data
             out[laneId] |= vOut;
         }
@@ -193,7 +198,7 @@ struct WarpPackedBits<uint8_t, 5> {
     static inline __device__ uint8_t read(int laneId, uint8_t* in) {
         uint8_t v = 0;
 
-        if (laneId < 20) {
+        if (laneId < kWarpSize / 8 * 5) {
             v = in[laneId];
         }
 

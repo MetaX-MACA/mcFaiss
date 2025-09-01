@@ -45,15 +45,13 @@ include(../cmake/link_to_faiss_lib.cmake)
 link_to_faiss_lib(faiss_test)
 
 if (FAISS_ENABLE_PYTHON)
-  target_link_libraries(faiss_test PUBLIC faiss_example_external_module)
+  # target_link_libraries(faiss_test PUBLIC faiss_example_external_module)
 endif()
 
+set(GTEST_URL "https://github.com/google/googletest/archive/release-1.12.1.tar.gz" CACHE STRING "Google Test Url")
+
 include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG 58d77fa8070e8cec2dc1ed015d66b454c8d78850 # release-1.12.1
-  OVERRIDE_FIND_PACKAGE)
+FetchContent_Declare(googletest URL "${GTEST_URL}" OVERRIDE_FIND_PACKAGE)
 set(BUILD_GMOCK CACHE BOOL OFF)
 set(INSTALL_GTEST CACHE BOOL OFF)
 FetchContent_MakeAvailable(googletest)

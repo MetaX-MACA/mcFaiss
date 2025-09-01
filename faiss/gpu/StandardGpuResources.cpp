@@ -392,6 +392,12 @@ void StandardGpuResourcesImpl::initializeForDevice(int device) {
             prop.warpSize == 32 || prop.warpSize == 64,
             "Device id %d does not have expected warpSize of 32 or 64",
             device);
+#elif defined(FAISS_WITH_MACA)
+    // Our code is pre-built with and expects warpSize == 64, validate that
+    FAISS_ASSERT_FMT(
+            prop.warpSize == 64,
+            "Device id %d does not have expected warpSize of 32",
+            device);
 #else
     // Our code is pre-built with and expects warpSize == 32, validate that
     FAISS_ASSERT_FMT(
@@ -437,9 +443,11 @@ void StandardGpuResourcesImpl::initializeForDevice(int device) {
     // rounding down of inputs to f16 (though accumulate in f32) which results
     // in unacceptable loss of precision in general. For CUDA 11 / A100, only
     // enable tensor core support if it doesn't result in a loss of precision.
+#ifndef FAISS_WITH_MACA
 #if CUDA_VERSION >= 11000
     cublasSetMathMode(
             blasHandle, CUBLAS_MATH_DISALLOW_REDUCED_PRECISION_REDUCTION);
+#endif
 #endif
 
     FAISS_ASSERT(allocs_.count(device) == 0);

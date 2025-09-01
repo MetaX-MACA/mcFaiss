@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/MetricType.h>
@@ -35,7 +40,8 @@ template <
         typename Metric,
         int ThreadsPerBlock,
         int NumWarpQ,
-        int NumThreadQ>
+        int NumThreadQ,
+        bool Residual>
 __global__ void ivfInterleavedScan(
         Tensor<float, 2, true> queries,
         Tensor<float, 3, true> residualBase,
@@ -47,8 +53,7 @@ __global__ void ivfInterleavedScan(
         int k,
         // [query][probe][k]
         Tensor<float, 3, true> distanceOut,
-        Tensor<idx_t, 3, true> indicesOut,
-        const bool Residual) {
+        Tensor<idx_t, 3, true> indicesOut) {
     if constexpr ((NumWarpQ == 1 && NumThreadQ == 1) || NumWarpQ >= kWarpSize) {
         extern __shared__ float smem[];
 
@@ -130,9 +135,8 @@ __global__ void ivfInterleavedScan(
                     const float residualReg =
                             Residual ? residualBaseSlice[loadDim] : 0;
 
-                    constexpr int kUnroll = 4;
+                    constexpr int kUnroll = 16;
 
-#pragma unroll
                     for (int i = 0; i < kWarpSize / kUnroll;
                          ++i, data += kUnroll * wordsPerVectorBlockDim) {
                         EncodeT encV[kUnroll];
@@ -220,6 +224,8 @@ __global__ void ivfInterleavedScan(
                 indicesOutBase[i] = smemV[i];
             }
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 

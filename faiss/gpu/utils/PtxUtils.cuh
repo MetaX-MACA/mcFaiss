@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <cuda.h>
@@ -54,12 +59,21 @@ __device__ __forceinline__ int getLaneId() {
 #else // USE_AMD_ROCM
 
 // defines to simplify the SASS assembly structure file/line in the profiler
+#ifndef FAISS_WITH_MACA
 #define GET_BITFIELD_U32(OUT, VAL, POS, LEN) \
     asm("bfe.u32 %0, %1, %2, %3;" : "=r"(OUT) : "r"(VAL), "r"(POS), "r"(LEN));
 
 #define GET_BITFIELD_U64(OUT, VAL, POS, LEN) \
     asm("bfe.u64 %0, %1, %2, %3;" : "=l"(OUT) : "l"(VAL), "r"(POS), "r"(LEN));
+#else
+#define GET_BITFIELD_U32(OUT, VAL, POS, LEN) \
+    OUT = (VAL >> (POS & 0xff)) & ((1u << (LEN & 0xff)) - 1u)
 
+#define GET_BITFIELD_U64(OUT, VAL, POS, LEN) \
+    OUT = (VAL >> (POS & 0xff)) & ((1u << (LEN & 0xff)) - 1u)
+#endif
+
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ unsigned int getBitfield(
         unsigned int val,
         int pos,
@@ -68,14 +82,36 @@ __device__ __forceinline__ unsigned int getBitfield(
     asm("bfe.u32 %0, %1, %2, %3;" : "=r"(ret) : "r"(val), "r"(pos), "r"(len));
     return ret;
 }
+#else
+__device__ __forceinline__ unsigned int getBitfield(
+        unsigned int val,
+        int pos,
+        int len) {
+    pos &= 0xff;
+    len &= 0xff;
+    auto m = (1u << len) - 1u;
+    return (val >> pos) & m;
+}
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ uint64_t
 getBitfield(uint64_t val, int pos, int len) {
     uint64_t ret;
     asm("bfe.u64 %0, %1, %2, %3;" : "=l"(ret) : "l"(val), "r"(pos), "r"(len));
     return ret;
 }
+#else
+__device__ __forceinline__ uint64_t
+getBitfield(uint64_t val, int pos, int len) {
+    pos &= 0xff;
+    len &= 0xff;
+    auto m = (1u << len) - 1u;
+    return (val >> pos) & m;
+}
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ unsigned int setBitfield(
         unsigned int val,
         unsigned int toInsert,
@@ -87,47 +123,81 @@ __device__ __forceinline__ unsigned int setBitfield(
         : "r"(toInsert), "r"(val), "r"(pos), "r"(len));
     return ret;
 }
+#else
+__device__ __forceinline__ unsigned int setBitfield(
+        unsigned int val,
+        unsigned int toInsert,
+        int pos,
+        int len) {
+    pos &= 0xff;
+    len &= 0xff;
+    auto m = (1u << len) - 1u;
+    toInsert &= m;
+    toInsert <<= pos;
+    m <<= pos;
 
+    return (val & ~m) | toInsert;
+}
+#endif
+
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ int getLaneId() {
     int laneId;
     asm("mov.u32 %0, %%laneid;" : "=r"(laneId));
     return laneId;
 }
+#else
+__device__ __forceinline__ int getLaneId() {
+    return __lane_id();
+}
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ unsigned getLaneMaskLt() {
     unsigned mask;
     asm("mov.u32 %0, %%lanemask_lt;" : "=r"(mask));
     return mask;
 }
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ unsigned getLaneMaskLe() {
     unsigned mask;
     asm("mov.u32 %0, %%lanemask_le;" : "=r"(mask));
     return mask;
 }
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ unsigned getLaneMaskGt() {
     unsigned mask;
     asm("mov.u32 %0, %%lanemask_gt;" : "=r"(mask));
     return mask;
 }
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ unsigned getLaneMaskGe() {
     unsigned mask;
     asm("mov.u32 %0, %%lanemask_ge;" : "=r"(mask));
     return mask;
 }
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ void namedBarrierWait(int name, int numThreads) {
     asm volatile("bar.sync %0, %1;" : : "r"(name), "r"(numThreads) : "memory");
 }
+#endif
 
+#ifndef FAISS_WITH_MACA
 __device__ __forceinline__ void namedBarrierArrived(int name, int numThreads) {
     asm volatile("bar.arrive %0, %1;"
                  :
                  : "r"(name), "r"(numThreads)
                  : "memory");
 }
+#endif
 
 #endif // USE_AMD_ROCM
 

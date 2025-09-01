@@ -7,16 +7,17 @@
 project(faiss_perf_tests)
 set(BENCHMARK_ENABLE_TESTING OFF)
 
+# need main for benchmark::benchmark
+set(GBENCH_URL "https://github.com/google/benchmark/archive/refs/heads/main.zip" CACHE STRING "Google Benchmark package Url")
 include(FetchContent)
-FetchContent_Declare(googlebenchmark
-        GIT_REPOSITORY https://github.com/google/benchmark.git
-        GIT_TAG main) # need main for benchmark::benchmark
+FetchContent_Declare(googlebenchmark URL "${GBENCH_URL}")
 FetchContent_MakeAvailable(
   googlebenchmark)
 
 
 find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
+# apt install libgflags-dev
 find_package(gflags REQUIRED)
 
 add_library(faiss_perf_tests_utils

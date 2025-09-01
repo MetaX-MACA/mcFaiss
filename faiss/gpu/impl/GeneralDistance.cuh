@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/MetricType.h>
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/impl/AuxIndexStructures.h>
@@ -162,7 +167,10 @@ __launch_bounds__(TILE_SIZE* TILE_SIZE) __global__ void generalDistance(
             idx_t remainder = query.getSize(1) - limit;
 
             // thread (y, x) does (query y, vec x)
+
+#ifndef FAISS_WITH_MACA
 #pragma unroll
+#endif
             for (idx_t i = 0; i < remainder; ++i) {
                 acc.handle(
                         ConvertTo<float>::to(queryTileBase[i]),

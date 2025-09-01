@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <faiss/gpu/utils/BlockSelectKernel.cuh>
@@ -43,7 +48,8 @@
                                                                                \
         auto grid = dim3(in.getSize(0));                                       \
                                                                                \
-        constexpr int kBlockSelectNumThreads = (WARP_Q <= 1024) ? 128 : 64;    \
+        constexpr int kBlockSelectNumThreads =                                 \
+                (WARP_Q <= 1024) ? kSortThreadCount : kSortThreadCountFor2048; \
         auto block = dim3(kBlockSelectNumThreads);                             \
                                                                                \
         FAISS_ASSERT(k <= WARP_Q);                                             \
@@ -76,7 +82,8 @@
                                                                                \
         auto grid = dim3(inK.getSize(0));                                      \
                                                                                \
-        constexpr int kBlockSelectNumThreads = (WARP_Q <= 1024) ? 128 : 64;    \
+        constexpr int kBlockSelectNumThreads =                                 \
+                (WARP_Q <= 1024) ? kSortThreadCount : kSortThreadCountFor2048; \
         auto block = dim3(kBlockSelectNumThreads);                             \
                                                                                \
         FAISS_ASSERT(k <= WARP_Q);                                             \

@@ -5,3 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 include("${CMAKE_CURRENT_LIST_DIR}/faiss-targets.cmake")
+
+# hack libgomp.so to remove absolute reference, depends on OpenMP::OpenMP_CXX already
+# hack CUDA:: dependencies
+foreach(t IN ITEMS faiss faiss_avx2 faiss_avx512 faiss_gpu)
+  if (TARGET ${t})
+    get_target_property(_i_link_libs ${t} INTERFACE_LINK_LIBRARIES)
+    message(VERBOSE "${t} dep libs:${_i_link_libs}")
+    list(FILTER _i_link_libs EXCLUDE REGEX "CUDA::|libgomp.so")
+    message(VERBOSE "${t} hacked dep libs:${_i_link_libs}")
+    set_property(TARGET ${t} PROPERTY INTERFACE_LINK_LIBRARIES ${_i_link_libs})
+  endif()
+endforeach()

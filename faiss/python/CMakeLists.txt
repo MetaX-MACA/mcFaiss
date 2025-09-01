@@ -138,7 +138,7 @@ swig_add_library(swigfaiss_avx2
   SOURCES swigfaiss_avx2.swig
 )
 set_property(TARGET swigfaiss_avx2 PROPERTY SWIG_COMPILE_OPTIONS -doxygen)
-if(NOT FAISS_OPT_LEVEL STREQUAL "avx2")
+if(NOT FAISS_OPT_LEVEL STREQUAL "avx2" AND NOT FAISS_OPT_LEVEL STREQUAL "avx512" AND NOT FAISS_OPT_LEVEL STREQUAL "avx512_spr")
   set_target_properties(swigfaiss_avx2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
@@ -212,6 +212,20 @@ if(FAISS_ENABLE_GPU)
     target_link_libraries(swigfaiss_avx512 PRIVATE hip::host)
     target_link_libraries(swigfaiss_avx512_spr PRIVATE hip::host)
     target_link_libraries(faiss_example_external_module PRIVATE hip::host)
+  elseif (FAISS_WITH_MACA)
+    find_package(CUDAToolkit REQUIRED)
+    foreach (t IN ITEMS swigfaiss swigfaiss_avx2 swigfaiss_avx512 swigfaiss_avx512_spr)
+      target_link_libraries(${t} PRIVATE CUDA::cudart)
+      # workaround, force include path for .cxx
+      target_include_directories(${t} PRIVATE
+        ${MACA_PATH}/tools/cu-bridge/include
+        ${MACA_PATH}/include
+        ${MACA_PATH}/include/mcr
+        ${MACA_PATH}/include/mcc
+        ${MACA_PATH}/include/mcblas
+        ${MACA_PATH}/include/common
+      )
+    endforeach ()
   else()
     find_package(CUDAToolkit REQUIRED)
     if(FAISS_ENABLE_CUVS)

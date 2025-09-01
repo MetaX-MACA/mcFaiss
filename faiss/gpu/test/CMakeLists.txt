@@ -33,6 +33,7 @@ macro(faiss_gpu_test file)
   add_executable(${test_name} ${file})
   target_link_libraries(${test_name} PRIVATE faiss_gpu_test_helper)
   target_compile_options(${test_name} PRIVATE
+    -std=c++17 # workaround for *.cu
     $<$<COMPILE_LANGUAGE:CUDA>:$<$<BOOL:${FAISS_ENABLE_CUVS}>:-Xcompiler=${OpenMP_CXX_FLAGS}>>)
   gtest_discover_tests(${test_name})
 endmacro()

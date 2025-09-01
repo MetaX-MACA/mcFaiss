@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #pragma once
 
 #include <cuda.h>
@@ -16,15 +21,16 @@ namespace gpu {
 // defines to simplify the SASS assembly structure file/line in the profiler
 #if CUDA_VERSION >= 9000
 #define SHFL_SYNC(VAL, SRC_LANE, WIDTH) \
-    __shfl_sync(0xffffffff, VAL, SRC_LANE, WIDTH)
+    __shfl_sync(kWarpAllMask, VAL, SRC_LANE, WIDTH)
 #else
 #define SHFL_SYNC(VAL, SRC_LANE, WIDTH) __shfl(VAL, SRC_LANE, WIDTH)
 #endif
 
 template <typename T>
-inline __device__ T shfl(const T val, int srcLane, int width = kWarpSize) {
+__forceinline__ __device__ T
+shfl(const T val, int srcLane, int width = kWarpSize) {
 #if CUDA_VERSION >= 9000
-    return __shfl_sync(0xffffffff, val, srcLane, width);
+    return __shfl_sync(kWarpAllMask, val, srcLane, width);
 #else
     return __shfl(val, srcLane, width);
 #endif
@@ -32,7 +38,10 @@ inline __device__ T shfl(const T val, int srcLane, int width = kWarpSize) {
 
 // CUDA SDK does not provide specializations for T*
 template <typename T>
-inline __device__ T* shfl(T* const val, int srcLane, int width = kWarpSize) {
+__forceinline__ __device__ T* shfl(
+        T* const val,
+        int srcLane,
+        int width = kWarpSize) {
     static_assert(sizeof(T*) == sizeof(long long), "pointer size");
     long long v = (long long)val;
 
@@ -40,10 +49,10 @@ inline __device__ T* shfl(T* const val, int srcLane, int width = kWarpSize) {
 }
 
 template <typename T>
-inline __device__ T
+__forceinline__ __device__ T
 shfl_up(const T val, unsigned int delta, int width = kWarpSize) {
 #if CUDA_VERSION >= 9000
-    return __shfl_up_sync(0xffffffff, val, delta, width);
+    return __shfl_up_sync(kWarpAllMask, val, delta, width);
 #else
     return __shfl_up(val, delta, width);
 #endif
@@ -51,7 +60,7 @@ shfl_up(const T val, unsigned int delta, int width = kWarpSize) {
 
 // CUDA SDK does not provide specializations for T*
 template <typename T>
-inline __device__ T* shfl_up(
+__forceinline__ __device__ T* shfl_up(
         T* const val,
         unsigned int delta,
         int width = kWarpSize) {
@@ -62,10 +71,10 @@ inline __device__ T* shfl_up(
 }
 
 template <typename T>
-inline __device__ T
+__forceinline__ __device__ T
 shfl_down(const T val, unsigned int delta, int width = kWarpSize) {
 #if CUDA_VERSION >= 9000
-    return __shfl_down_sync(0xffffffff, val, delta, width);
+    return __shfl_down_sync(kWarpAllMask, val, delta, width);
 #else
     return __shfl_down(val, delta, width);
 #endif
@@ -73,7 +82,7 @@ shfl_down(const T val, unsigned int delta, int width = kWarpSize) {
 
 // CUDA SDK does not provide specializations for T*
 template <typename T>
-inline __device__ T* shfl_down(
+__forceinline__ __device__ T* shfl_down(
         T* const val,
         unsigned int delta,
         int width = kWarpSize) {
@@ -83,9 +92,10 @@ inline __device__ T* shfl_down(
 }
 
 template <typename T>
-inline __device__ T shfl_xor(const T val, int laneMask, int width = kWarpSize) {
+__forceinline__ __device__ T
+shfl_xor(const T val, int laneMask, int width = kWarpSize) {
 #if CUDA_VERSION >= 9000
-    return __shfl_xor_sync(0xffffffff, val, laneMask, width);
+    return __shfl_xor_sync(kWarpAllMask, val, laneMask, width);
 #else
     return __shfl_xor(val, laneMask, width);
 #endif
@@ -93,7 +103,7 @@ inline __device__ T shfl_xor(const T val, int laneMask, int width = kWarpSize) {
 
 // CUDA SDK does not provide specializations for T*
 template <typename T>
-inline __device__ T* shfl_xor(
+__forceinline__ __device__ T* shfl_xor(
         T* const val,
         int laneMask,
         int width = kWarpSize) {

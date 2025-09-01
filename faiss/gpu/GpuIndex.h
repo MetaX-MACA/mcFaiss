@@ -48,7 +48,13 @@ struct GpuIndexConfig {
 
 /// A centralized function that determines whether cuVS should
 /// be used based on various conditions (such as unsupported architecture)
+#if defined USE_NVIDIA_CUVS
 bool should_use_cuvs(GpuIndexConfig config_);
+#else
+static constexpr bool should_use_cuvs(GpuIndexConfig config_) {
+    return false;
+}
+#endif
 
 class GpuIndex : public faiss::Index {
    public:

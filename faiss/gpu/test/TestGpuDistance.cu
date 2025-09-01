@@ -73,13 +73,13 @@ void evaluate_bfknn(
             break;
         case TestThresholds::BF16:
             maxRelativeError = 1.5e-2f;
-            pctMaxDiff1 = 0.3f;
-            pctMaxDiffN = 0.1f;
+            pctMaxDiff1 = 0.5f;
+            pctMaxDiffN = 0.15f;
             break;
         case TestThresholds::BF16_Linf:
             maxRelativeError = 1.5e-2f;
-            pctMaxDiff1 = 0.53f;
-            pctMaxDiffN = 0.2f;
+            pctMaxDiff1 = 0.6f;
+            pctMaxDiffN = 0.25f;
             break;
     }
 

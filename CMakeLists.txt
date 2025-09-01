@@ -50,7 +50,7 @@ project(faiss
   VERSION 1.10.0
   DESCRIPTION "A library for efficient similarity search and clustering of dense vectors."
   HOMEPAGE_URL "https://github.com/facebookresearch/faiss"
-  LANGUAGES ${FAISS_LANGUAGES})
+  LANGUAGES CXX)
 include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -76,11 +76,27 @@ if(FAISS_ENABLE_GPU)
     find_package(hipBLAS REQUIRED)
     set(GPU_EXT_PREFIX "hip")
     execute_process(COMMAND ${PROJECT_SOURCE_DIR}/faiss/gpu/hipify.sh)
+  elseif (FAISS_WITH_MACA)
+    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/xgpu")
+    list(APPEND CMAKE_MODULE_PATH "${MACA_PATH}/tools/cu-bridge/cmake_module/maca")
+    include(cmake/xgpu/ConfigureCUCC.cmake)
+    list(APPEND FAISS_LANGUAGES CUDA)
+    enable_language(CUDA)
+    set(GPU_EXT_PREFIX "cu")
+
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+    string(REGEX REPLACE "CMAKE_CXX_COMPILER" "CMAKE_LINKER" CMAKE_CXX_CREATE_SHARED_LIBRARY "${CMAKE_CXX_CREATE_SHARED_LIBRARY}")
+    string(REGEX REPLACE "CMAKE_CXX_COMPILER" "CMAKE_LINKER" CMAKE_CXX_CREATE_SHARED_MODULE "${CMAKE_CXX_CREATE_SHARED_MODULE}")
+    # revert changes from cu-bridge/cmake_module/
+    set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
+    # fix: gomp -> omp
+    add_link_options(-fopenmp)
+    # set(CMAKE_CUDA_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <FLAGS> <CMAKE_CUDA_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
   else ()
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     set(GPU_EXT_PREFIX "cu")
-  endif()
+  endif ()
 endif()
 
 if(FAISS_ENABLE_CUVS AND NOT TARGET cuvs::cuvs)

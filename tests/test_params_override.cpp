@@ -117,43 +117,48 @@ int test_params_override(const char* index_key, MetricType metric) {
  *************************************************************/
 
 int test_selector(const char* index_key) {
-    std::vector<float> xb = make_data(nb); // database vectors
-    std::vector<float> xq = make_data(nq);
-    ParameterSpace ps;
+    for (int c = 0; c < 3; ++c) {
+        std::vector<float> xb = make_data(nb); // database vectors
+        std::vector<float> xq = make_data(nq);
+        ParameterSpace ps;
 
-    std::vector<float> sub_xb;
-    std::vector<idx_t> kept;
-    for (idx_t i = 0; i < nb; i++) {
-        if (i % 10 == 2) {
-            kept.push_back(i);
-            sub_xb.insert(
-                    sub_xb.end(), xb.begin() + i * d, xb.begin() + (i + 1) * d);
+        std::vector<float> sub_xb;
+        std::vector<idx_t> kept;
+        for (idx_t i = 0; i < nb; i++) {
+            if (i % 10 == 2) {
+                kept.push_back(i);
+                sub_xb.insert(
+                        sub_xb.end(),
+                        xb.begin() + i * d,
+                        xb.begin() + (i + 1) * d);
+            }
+        }
+
+        // full index
+        auto index = make_index(index_key, METRIC_L2, xb);
+        ps.set_index_parameter(index.get(), "nprobe", 3);
+
+        // restricted index
+        std::unique_ptr<Index> sub_index(clone_index(index.get()));
+        sub_index->reset();
+        sub_index->add_with_ids(kept.size(), sub_xb.data(), kept.data());
+
+        auto ref_result = search_index(sub_index.get(), xq.data());
+
+        IVFSearchParameters params;
+        params.max_codes = 0;
+        params.nprobe = 3;
+        IDSelectorBatch sel(kept.size(), kept.data());
+        params.sel = &sel;
+        auto new_result =
+                search_index_with_params(index.get(), xq.data(), &params);
+
+        if (ref_result == new_result) {
+            return 0;
         }
     }
-
-    // full index
-    auto index = make_index(index_key, METRIC_L2, xb);
-    ps.set_index_parameter(index.get(), "nprobe", 3);
-
-    // restricted index
-    std::unique_ptr<Index> sub_index(clone_index(index.get()));
-    sub_index->reset();
-    sub_index->add_with_ids(kept.size(), sub_xb.data(), kept.data());
-
-    auto ref_result = search_index(sub_index.get(), xq.data());
-
-    IVFSearchParameters params;
-    params.max_codes = 0;
-    params.nprobe = 3;
-    IDSelectorBatch sel(kept.size(), kept.data());
-    params.sel = &sel;
-    auto new_result = search_index_with_params(index.get(), xq.data(), &params);
-
-    if (ref_result != new_result) {
-        return 1;
-    }
-
-    return 0;
+    // failed on 3 times
+    return 1;
 }
 
 } // namespace

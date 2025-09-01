@@ -432,6 +432,9 @@ if(FAISS_OPT_LEVEL STREQUAL "sve")
   )
 endif()
 
+# build twice so DO NOT install headers/others while compile shared library
+if(NOT BUILD_SHARED_LIBS)
+
 foreach(header ${FAISS_HEADERS})
   get_filename_component(dir ${header} DIRECTORY )
   install(FILES ${header}
@@ -458,3 +461,5 @@ install(FILES ${PROJECT_BINARY_DIR}/cmake/faiss-config.cmake
 install(EXPORT faiss-targets
   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/faiss
 )
+
+endif(NOT BUILD_SHARED_LIBS)

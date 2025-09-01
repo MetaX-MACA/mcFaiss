@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/gpu/utils/StaticUtils.h>
 #include <faiss/gpu/impl/IVFUtils.cuh>
@@ -95,6 +100,8 @@ __global__ void pass1SelectLists(
                 heapIndices[queryId][sliceId][i] = idx_t(smemV[i]);
             }
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 
@@ -129,6 +136,8 @@ void runPass1SelectLists(
                         heapIndices);                                   \
         return; /* success */                                           \
     } while (0)
+
+#ifndef FAISS_WITH_MACA
 
 #if GPU_MAX_SELECTION_K >= 2048
 
@@ -176,6 +185,54 @@ void runPass1SelectLists(
     } while (0)
 
 #endif // GPU_MAX_SELECTION_K
+
+#else
+
+// MACA Impls
+#if GPU_MAX_SELECTION_K >= 2048
+
+    // block size 128 for k <= 1024, 64 for k = 2048
+#define RUN_PASS_DIR(INDEX_T, DIR)                                    \
+    do {                                                              \
+        if (k == 1) {                                                 \
+            RUN_PASS(INDEX_T, kSortThreadCount, 1, 1, DIR);           \
+        } else if (k <= 64) {                                         \
+            RUN_PASS(INDEX_T, kSortThreadCount, 64, 3, DIR);          \
+        } else if (k <= 128) {                                        \
+            RUN_PASS(INDEX_T, kSortThreadCount, 128, 3, DIR);         \
+        } else if (k <= 256) {                                        \
+            RUN_PASS(INDEX_T, kSortThreadCount, 256, 4, DIR);         \
+        } else if (k <= 512) {                                        \
+            RUN_PASS(INDEX_T, kSortThreadCount, 512, 8, DIR);         \
+        } else if (k <= 1024) {                                       \
+            RUN_PASS(INDEX_T, kSortThreadCount, 1024, 8, DIR);        \
+        } else if (k <= 2048) {                                       \
+            RUN_PASS(INDEX_T, kSortThreadCountFor2048, 2048, 8, DIR); \
+        }                                                             \
+    } while (0)
+
+#else
+
+#define RUN_PASS_DIR(INDEX_T, DIR)                             \
+    do {                                                       \
+        if (k == 1) {                                          \
+            RUN_PASS(INDEX_T, kSortThreadCount, 1, 1, DIR);    \
+        } else if (k <= 64) {                                  \
+            RUN_PASS(INDEX_T, kSortThreadCount, 64, 3, DIR);   \
+        } else if (k <= 128) {                                 \
+            RUN_PASS(INDEX_T, kSortThreadCount, 128, 3, DIR);  \
+        } else if (k <= 256) {                                 \
+            RUN_PASS(INDEX_T, kSortThreadCount, 256, 4, DIR);  \
+        } else if (k <= 512) {                                 \
+            RUN_PASS(INDEX_T, kSortThreadCount, 512, 8, DIR);  \
+        } else if (k <= 1024) {                                \
+            RUN_PASS(INDEX_T, kSortThreadCount, 1024, 8, DIR); \
+        }                                                      \
+    } while (0)
+
+#endif // GPU_MAX_SELECTION_K
+
+#endif // FAISS_WITH_MACA
 
     if (use64BitSelection) {
         if (chooseLargest) {

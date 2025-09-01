@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 #include <time.h>
 #include <cmath>
+#include <iomanip> // std::setprecision, std::fixed
 #include <set>
 #include <sstream>
 #include <unordered_map>
@@ -347,11 +348,16 @@ void compareLists(
         EXPECT_LE(
                 (float)(diff1 + diffN + diffInf),
                 (float)numResults * pctMaxDiff1)
-                << configMsg;
+                << "act rate: " << std::fixed << std::setprecision(2)
+                << float(diff1 + diffN + diffInf) * 100 / numResults << "% "
+                << "config: " << configMsg;
 
         // Don't count diffInf because that could be diff1 as far as we
         // know
-        EXPECT_LE((float)diffN, (float)numResults * pctMaxDiffN) << configMsg;
+        EXPECT_LE((float)diffN, (float)numResults * pctMaxDiffN)
+                << "act rate: " << std::fixed << std::setprecision(2)
+                << float(diffN) * 100 / numResults << "% "
+                << "config: " << configMsg;
     }
 
     avgDiff /= (double)numResults;

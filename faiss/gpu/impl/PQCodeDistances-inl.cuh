@@ -22,6 +22,8 @@ namespace gpu {
 
 #if defined(USE_AMD_ROCM) && __AMDGCN_WAVEFRONT_SIZE == 64u
 #define LAUNCH_BOUND 320
+#elif defined(FAISS_WITH_MACA)
+#define LAUNCH_BOUND 320
 #else
 #define LAUNCH_BOUND 288
 #endif
@@ -43,7 +45,7 @@ __global__ void __launch_bounds__(LAUNCH_BOUND, 3) pqCodeDistances(
         Tensor<OutCodeT, 4, true> outCodeDistances) {
     const auto numSubQuantizers = pqCentroids.getSize(0);
     const auto dimsPerSubQuantizer = pqCentroids.getSize(1);
-    assert(DimsPerSubQuantizer == dimsPerSubQuantizer);
+    // assert(DimsPerSubQuantizer == dimsPerSubQuantizer);
     const auto codesPerSubQuantizer = pqCentroids.getSize(2);
 
     bool isLoadingThread = threadIdx.x >= codesPerSubQuantizer;

@@ -64,6 +64,8 @@ __global__ void warpSelect(
 
         heap.reduce();
         heap.writeOut(outK[row].data(), outV[row].data(), k);
+    } else {
+        assert(false && "should never called config");
     }
 }
 

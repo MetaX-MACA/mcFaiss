@@ -168,6 +168,7 @@ bool getTensorCoreSupportCurrentDevice() {
     return getTensorCoreSupport(getCurrentDevice());
 }
 
+#if USE_AMD_ROCM
 int getWarpSize(int device) {
     const auto& prop = getDeviceProperties(device);
     return prop.warpSize;
@@ -176,6 +177,7 @@ int getWarpSize(int device) {
 int getWarpSizeCurrentDevice() {
     return getWarpSize(getCurrentDevice());
 }
+#endif
 
 size_t getFreeMemory(int device) {
     DeviceScope scope(device);

@@ -73,7 +73,12 @@ void runUpdateListPointers(
 }
 
 // Appends new indices for vectors being added to the IVF indices lists
+#ifndef FAISS_WITH_MACA
 __global__ void ivfIndicesAppend(
+#else
+// default 512, set to avoid recompile
+__launch_bounds__(1024) __global__ void ivfIndicesAppend(
+#endif
         Tensor<idx_t, 1, true> listIds,
         Tensor<idx_t, 1, true> listOffset,
         Tensor<idx_t, 1, true> indices,

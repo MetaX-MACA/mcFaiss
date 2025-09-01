@@ -31,7 +31,6 @@ TEST(TestGpuMemoryException, AddException) {
 
     faiss::gpu::GpuIndexFlatConfig config;
     config.device = faiss::gpu::randVal(0, faiss::gpu::getNumDevices() - 1);
-    config.use_cuvs = false;
 
     faiss::gpu::GpuIndexFlatL2 gpuIndexL2Broken(
             &res, (int)brokenAddDims, config);
@@ -41,8 +40,13 @@ TEST(TestGpuMemoryException, AddException) {
     // Should throw on attempting to allocate too much data
     {
         // allocate memory without initialization
-        auto vecs = std::unique_ptr<float[]>(
-                new float[numBrokenAdd * brokenAddDims]);
+        std::unique_ptr<float[]> vecs{nullptr};
+        try {
+            vecs = std::unique_ptr<float[]>(
+                    new float[numBrokenAdd * brokenAddDims]);
+        } catch (...) {
+            GTEST_SKIP() << "Skip due to not enough host memory";
+        }
         EXPECT_THROW(
                 gpuIndexL2Broken.add(numBrokenAdd, vecs.get()),
                 faiss::FaissException);
@@ -58,8 +62,13 @@ TEST(TestGpuMemoryException, AddException) {
     // Should throw on attempting to allocate too much data
     {
         // allocate memory without initialization
-        auto vecs = std::unique_ptr<float[]>(
-                new float[numBrokenAdd * brokenAddDims]);
+        std::unique_ptr<float[]> vecs{nullptr};
+        try {
+            vecs = std::unique_ptr<float[]>(
+                    new float[numBrokenAdd * brokenAddDims]);
+        } catch (...) {
+            GTEST_SKIP() << "Skip due to not enough host memory";
+        }
         EXPECT_THROW(
                 gpuIndexL2Broken.add(numBrokenAdd, vecs.get()),
                 faiss::FaissException);

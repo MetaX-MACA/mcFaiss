@@ -49,6 +49,7 @@
 namespace faiss {
 namespace gpu {
 
+#if defined USE_NVIDIA_CUVS
 bool should_use_cuvs(GpuDistanceParams args) {
     int dev = args.device >= 0 ? args.device : getCurrentDevice();
     auto prop = getDeviceProperties(dev);
@@ -58,6 +59,7 @@ bool should_use_cuvs(GpuDistanceParams args) {
 
     return args.use_cuvs;
 }
+#endif
 
 template <typename T>
 void bfKnnConvert(GpuResourcesProvider* prov, const GpuDistanceParams& args) {

@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/gpu/GpuResources.h>
 #include <faiss/gpu/utils/DeviceUtils.h>
 #include <faiss/gpu/utils/StaticUtils.h>
@@ -595,7 +600,8 @@ void runPQScanMultiPassPrecomputed(
     idx_t queryTileSize = getIVFQueryTileSize(
             queries.getSize(0),
             res->getTempMemoryAvailableCurrentDevice(),
-            sizePerQuery);
+            sizePerQuery,
+            nprobe);
 
     // Temporary memory buffers
     // Make sure there is space prior to the start which will be 0, and

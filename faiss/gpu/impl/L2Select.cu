@@ -5,6 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+/*
+ * 2025 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd.
+ * All Rights Reserved.
+ */
+
 #include <faiss/impl/FaissAssert.h>
 #include <faiss/gpu/impl/L2Select.cuh>
 
@@ -182,6 +187,8 @@ __global__ void l2SelectMinK(
             outDistances[row][i] = smemK[i];
             outIndices[row][i] = idx_t(smemV[i]);
         }
+    } else {
+        assert(false && "should never called config");
     }
 }
 
@@ -243,23 +250,27 @@ void runL2SelectMin(
     } while (false)
 
         // block size 128 for everything <= 1024
+#ifndef FAISS_WITH_MACA
         if (k <= 32 && getWarpSizeCurrentDevice() == 32) {
             RUN_L2_SELECT(128, 32, 2);
         } else if (k <= 64) {
-            RUN_L2_SELECT(128, 64, 3);
+#else
+        if (k <= 64) {
+#endif
+            RUN_L2_SELECT(kSortThreadCount, 64, 3);
         } else if (k <= 128) {
-            RUN_L2_SELECT(128, 128, 3);
+            RUN_L2_SELECT(kSortThreadCount, 128, 3);
         } else if (k <= 256) {
-            RUN_L2_SELECT(128, 256, 4);
+            RUN_L2_SELECT(kSortThreadCount, 256, 4);
         } else if (k <= 512) {
-            RUN_L2_SELECT(128, 512, 8);
+            RUN_L2_SELECT(kSortThreadCount, 512, 8);
         } else if (k <= 1024) {
-            RUN_L2_SELECT(128, 1024, 8);
+            RUN_L2_SELECT(kSortThreadCount, 1024, 8);
 
 #if GPU_MAX_SELECTION_K >= 2048
         } else if (k <= 2048) {
             // smaller block for less shared memory
-            RUN_L2_SELECT(64, 2048, 8);
+            RUN_L2_SELECT(kSortThreadCountFor2048, 2048, 8);
 #endif
         } else {
             FAISS_ASSERT(false);
